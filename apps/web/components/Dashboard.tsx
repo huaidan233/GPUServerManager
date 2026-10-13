@@ -28,7 +28,6 @@ import { PersonalDataPanel } from "./PersonalDataPanel";
 import { PrintOperationsPanel } from "./PrintOperationsPanel";
 import { MemberManagementPanel } from "./MemberManagementPanel";
 import { RoleOverview } from "./RoleOverview";
-import { TeacherWorkspace } from "./TeacherWorkspace";
 import { TeacherUsagePanel } from "./TeacherUsagePanel";
 import { WorkspaceNav } from "./WorkspaceNav";
 import type { TeacherStudent, WorkspaceOverview } from "../lib/api";
@@ -284,7 +283,7 @@ export function Dashboard({
           />
         )}
 
-        {workspace === "students" && workspaceRole === "teacher" && <TeacherWorkspace view="students" initialStudents={teacherStudents} initialApprovals={[]} onUpdated={refreshResources} refreshing={refreshing} />}
+        {workspace === "students" && workspaceRole === "teacher" && <MemberManagementPanel key={data.actor.memberId} containers={[]} currentMemberId={data.actor.memberId} actor={data.actor} onContainersUpdated={refreshResources} />}
         {workspace === "approvals" && <QuotaRequestsPanel memberId={data.actor.memberId} enabled={data.source === "api"} />}
 
         {workspace === "usage" && workspaceRole === "teacher" && (

@@ -62,7 +62,8 @@ type MemberDetailDrawerProps = {
   supervisorName?: string;
   triggerRef: RefObject<HTMLElement | null>;
   onAction: (kind: MemberActionKind) => void;
-  onManageContainers: () => void;
+  onManageContainers?: () => void;
+  accountOnly?: boolean;
   onClose: () => void;
 };
 
@@ -73,6 +74,7 @@ export function MemberDetailDrawer({
   triggerRef,
   onAction,
   onManageContainers,
+  accountOnly = false,
   onClose,
 }: MemberDetailDrawerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -99,7 +101,7 @@ export function MemberDetailDrawer({
         <div><dt>入学日期</dt><dd>{program?.enrollment_date ?? "-"}</dd></div>
         <div><dt>预计毕业</dt><dd>{program?.expected_graduation_date ?? "长期有效"}</dd></div>
         <div><dt>微信</dt><dd>{member.wechat_binding ? "已绑定" : "未绑定"}</dd></div>
-        <div><dt>容器</dt><dd>{containerCount} 个容器 <button className="text-button" type="button" onClick={onManageContainers}>管理容器</button></dd></div>
+        {!accountOnly && <div><dt>容器</dt><dd>{containerCount} 个容器 <button className="text-button" type="button" onClick={onManageContainers}>管理容器</button></dd></div>}
       </dl>
 
       <div className="member-action-menu-wrap">
@@ -120,18 +122,18 @@ export function MemberDetailDrawer({
             className="member-action-menu"
             aria-label={`${member.display_name} 操作`}
           >
-            <MenuAction label={`修正资料 ${member.display_name}`} icon={<Pencil size={15} />} onClick={() => action("profile-correction")} />
-            <MenuAction label={`调整角色 ${member.display_name}`} icon={<ShieldCheck size={15} />} onClick={() => action("role")} />
+            {member.status !== "archived" && <MenuAction label={`修正资料 ${member.display_name}`} icon={<Pencil size={15} />} onClick={() => action("profile-correction")} />}
+            {member.status !== "archived" && <MenuAction label={`调整角色 ${member.display_name}`} icon={<ShieldCheck size={15} />} onClick={() => action("role")} />}
             {program && member.status !== "archived" && <MenuAction label={`分配导师 ${member.display_name}`} icon={<GraduationCap size={15} />} onClick={() => action("supervisor")} />}
             {program && member.status !== "archived" && <MenuAction label={`延期 ${member.display_name}`} icon={<CalendarClock size={15} />} onClick={() => action("extend")} />}
             {program?.level === "master" && member.status !== "archived" && <MenuAction label={`硕转博 ${member.display_name}`} icon={<GraduationCap size={15} />} onClick={() => action("promote-to-doctor")} />}
             {member.status !== "archived" && <MenuAction label={`重置密码 ${member.display_name}`} icon={<KeyRound size={15} />} onClick={() => action("password-reset")} />}
-            {member.status !== "archived" && <MenuAction label={`撤销会话 ${member.display_name}`} icon={<LogOut size={15} />} onClick={() => action("revoke-sessions")} />}
-            {member.wechat_binding && <MenuAction label={`解绑微信 ${member.display_name}`} icon={<Unlink size={15} />} onClick={() => action("wechat-unbind")} danger />}
+            {!accountOnly && member.status !== "archived" && <MenuAction label={`撤销会话 ${member.display_name}`} icon={<LogOut size={15} />} onClick={() => action("revoke-sessions")} />}
+            {!accountOnly && member.wechat_binding && <MenuAction label={`解绑微信 ${member.display_name}`} icon={<Unlink size={15} />} onClick={() => action("wechat-unbind")} danger />}
             {["invited", "active", "pending_exit"].includes(member.status) && <MenuAction label={`停用 ${member.display_name}`} icon={<UserX size={15} />} onClick={() => action("disable")} danger />}
             {member.status === "disabled" && <MenuAction label={`重新启用 ${member.display_name}`} icon={<UserCheck size={15} />} onClick={() => action("reactivate")} />}
             {member.status === "disabled" && <MenuAction label={`归档 ${member.display_name}`} icon={<Archive size={15} />} onClick={() => action("archive")} danger />}
-            <MenuAction label={`转移容器 ${member.display_name}`} icon={<ArrowRightLeft size={15} />} onClick={() => action("transfer")} disabled={containerCount === 0 || member.status === "archived"} />
+            {!accountOnly && <MenuAction label={`转移容器 ${member.display_name}`} icon={<ArrowRightLeft size={15} />} onClick={() => action("transfer")} disabled={containerCount === 0 || member.status === "archived"} />}
           </div>
         )}
       </div>

@@ -1094,3 +1094,158 @@ def test_member_self_service_route_has_one_session_owned_registration():
 
     assert len(routes) == 1
     assert routes[0].endpoint.__module__ == "gsm_api.member_routes"
+
+
+@pytest.fixture
+def teacher_accounts(member_api):
+    client, store, clock, admin_headers = member_api
+    auth = app.state.auth_service
+    teacher = _seed_teacher(store, auth)
+    student = _seed_student(store, member_id="assigned-student", username="assigned",
+                            supervisor_member_id=teacher["id"])
+    auth.set_password(student["id"], PASSWORD)
+    return client, store, teacher, student, _session_headers(auth, "teacher")
+
+
+def test_teacher_creates_student_and_receives_initial_password(teacher_accounts):
+    client, store, teacher, student, headers = teacher_accounts
+    response = client.post("/api/teacher/students", headers=headers, json=_invite_payload())
+    assert response.status_code == 201
+    created = response.json()
+    assert created["member"]["supervisor_member_id"] == teacher["id"]
+    assert created["member"]["created_by_member_id"] == teacher["id"]
+    assert len(created["initial_password"]) >= 12
+    assert created["requires_password_change"] is True
+    assert "activation_code" not in created
+    assert {m["id"] for m in client.get("/api/teacher/students", headers=headers).json()} == {
+        student["id"], created["member"]["id"]}
+
+
+@pytest.mark.parametrize("role,kind", [("admin", "student"), ("admin", "staff"), ("teacher", "staff"), ("user", "staff")])
+def test_teacher_cannot_create_privileged_or_staff_accounts(teacher_accounts, role, kind):
+    client, store, teacher, student, headers = teacher_accounts
+    response = client.post("/api/teacher/students", headers=headers,
+                           json=_invite_payload(role=role, member_kind=kind))
+    assert response.status_code == 403
+    assert store.get_member_by_username("alice") is None
+
+
+def test_teacher_account_lifecycle_and_role_changes(teacher_accounts):
+    client, store, teacher, student, headers = teacher_accounts
+    path = f"/api/teacher/students/{student['id']}"
+    student_headers = _session_headers(app.state.auth_service, "assigned")
+    for role in ("power_user", "viewer", "user"):
+        response = client.post(path + "/role", headers=headers, json={
+            "expected_version": student["version"], "reason": "update account access", "role": role})
+        assert response.status_code == 200
+        student = response.json()
+        assert student["role"] == role
+    assert client.get("/api/me", headers=student_headers).status_code == 401
+    response = client.post(path + "/password-reset", headers=headers,
+                           json={"expected_version": student["version"], "reason": "forgot password"})
+    assert response.status_code == 200
+    assert response.json()["requires_password_change"] is True
+    assert response.json()["initial_password"]
+    student = response.json()["member"]
+    for action, expected_status in (("disable", "disabled"), ("reactivate", "active"), ("disable", "disabled"), ("archive", "archived")):
+        response = client.post(path + "/" + action, headers=headers, json={
+            "expected_version": student["version"], "reason": "account lifecycle",
+            **({"confirmation": "ARCHIVE assigned"} if action == "archive" else {})})
+        assert response.status_code == 200, response.text
+        student = response.json()
+        assert student["status"] == expected_status
+
+
+@pytest.mark.parametrize("role", ["teacher", "admin"])
+def test_teacher_cannot_promote_student_to_privileged_role(teacher_accounts, role):
+    client, store, teacher, student, headers = teacher_accounts
+    response = client.post(f"/api/teacher/students/{student['id']}/role", headers=headers,
+        json={"expected_version": student["version"], "reason": "escalation", "role": role})
+    assert response.status_code == 403
+    assert store.get_member(student["id"])["role"] == "user"
+
+
+@pytest.mark.parametrize("action,extra", [
+    ("password-reset", {}), ("disable", {}), ("reactivate", {}),
+    ("archive", {"confirmation": "ARCHIVE outside"}),
+    ("role", {"role": "user"}), ("supervisor", {"supervisor_member_id": "member-teacher"}),
+    ("profile-correction", {"display_name": "Attempted edit"}),
+])
+@pytest.mark.parametrize("target_kind", ["outside", "unassigned", "assigned-admin", "teacher"])
+def test_teacher_account_actions_reject_targets_outside_scope(teacher_accounts, action, extra, target_kind):
+    client, store, teacher, student, headers = teacher_accounts
+    if target_kind == "teacher":
+        target = teacher
+    else:
+        target = _seed_student(store, member_id="outside", username="outside",
+            supervisor_member_id=teacher["id"] if target_kind == "assigned-admin" else (
+                None if target_kind == "unassigned" else "another-teacher"))
+        if target_kind == "assigned-admin":
+            target = store.update_member(target["id"], target["version"], {"role": "admin"})
+    response = client.post(f"/api/teacher/students/{target['id']}/{action}", headers=headers,
+        json={"expected_version": target["version"], "reason": "outside scope", **extra})
+    assert response.status_code == 403
+    assert store.get_member(target["id"])["version"] == target["version"]
+    assert target["id"] not in {m["id"] for m in client.get("/api/teacher/students", headers=headers).json()}
+
+
+@pytest.mark.parametrize("supervisor", ["another-teacher", None])
+def test_teacher_reassignment_immediately_removes_scope(teacher_accounts, supervisor):
+    client, store, teacher, student, headers = teacher_accounts
+    _seed_teacher(store, app.state.auth_service, member_id="another-teacher", username="another")
+    path = f"/api/teacher/students/{student['id']}"
+    response = client.post(path + "/supervisor", headers=headers,
+        json={"expected_version": student["version"], "reason": "transfer supervision", "supervisor_member_id": supervisor})
+    assert response.status_code == 200
+    assert client.get(path, headers=headers).status_code == 403
+    assert client.get("/api/teacher/students", headers=headers).json() == []
+    assert client.post(path + "/password-reset", headers=headers,
+        json={"expected_version": response.json()["version"], "reason": "old supervisor"}).status_code == 403
+
+
+def test_teacher_can_create_for_another_supervisor_and_directory_is_minimal(teacher_accounts):
+    client, store, teacher, student, headers = teacher_accounts
+    other = _seed_teacher(store, app.state.auth_service, member_id="another-teacher", username="another")
+    directory = client.get("/api/teacher/supervisors", headers=headers)
+    assert directory.status_code == 200
+    assert other["id"] in {m["id"] for m in directory.json()}
+    assert all(set(m) == {"id", "username", "display_name", "status"} for m in directory.json())
+    response = client.post("/api/teacher/students", headers=headers,
+        json=_invite_payload(supervisor_username="another"))
+    assert response.status_code == 201
+    assert response.json()["member"]["supervisor_member_id"] == other["id"]
+    assert response.json()["initial_password"]
+    assert client.get(f"/api/teacher/students/{response.json()['member']['id']}", headers=headers).status_code == 403
+
+
+def test_teacher_account_mutations_require_csrf_and_current_authority(teacher_accounts):
+    client, store, teacher, student, headers = teacher_accounts
+    path = f"/api/teacher/students/{student['id']}/disable"
+    body = {"expected_version": student["version"], "reason": "test authorization"}
+    no_csrf = {k: v for k, v in headers.items() if k != "X-CSRF-Token"}
+    assert client.post(path, headers=no_csrf, json=body).status_code == 403
+    assert client.post(path, headers=headers, json=body | {"expected_version": 999}).status_code == 409
+    store.update_member(teacher["id"], teacher["version"], {"role": "user"})
+    assert client.post(path, headers=headers, json=body).status_code == 403
+    assert client.post("/api/teacher/students", headers=headers, json=_invite_payload()).status_code == 403
+    assert store.get_member(student["id"])["status"] == "active"
+
+
+def test_teacher_cannot_archive_member_with_container_or_manage_container(teacher_accounts):
+    client, store, teacher, student, headers = teacher_accounts
+    save_container_record({"id": "student-research", "name": "student-research", "server_id": "server-1",
+        "owner_member_id": student["id"], "owner_user_id": student["username"], "status": "running",
+        "metadata": {}, "version": 1})
+    path = f"/api/teacher/students/{student['id']}"
+    disabled = client.post(path + "/disable", headers=headers,
+        json={"expected_version": student["version"], "reason": "account disabled"})
+    assert disabled.status_code == 200
+    archived = client.post(path + "/archive", headers=headers,
+        json={"expected_version": disabled.json()["version"], "reason": "archive", "confirmation": "ARCHIVE assigned"})
+    assert archived.status_code == 409
+    assert "managed containers" in archived.json()["detail"]
+    assert get_container_record("student-research")["status"] == "running"
+    for action in ("start", "stop", "restart"):
+        assert client.post(f"/api/containers/student-research/{action}", headers=headers).status_code == 403
+    assert client.get("/api/containers/student-research/ssh-password", headers=headers).status_code == 403
+    assert client.get("/api/admin/members", headers=headers).status_code == 403

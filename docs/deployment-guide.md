@@ -1,6 +1,6 @@
 # GPU Server Manager 0.3.0 预发布：部署与功能手册
 
-适用版本：`0.3.0-rc.6`（Python 包版本 `0.3.0rc6`）。本文面向部署管理员；日常操作见[用户手册](user-guide.md)。这是预发布候选版本，建议先在受控环境验收，再交付团队使用。
+适用版本：`0.3.0-rc.7`（Python 包版本 `0.3.0rc7`）。本文面向部署管理员；日常操作见[用户手册](user-guide.md)。这是预发布候选版本，建议先在受控环境验收，再交付团队使用。
 
 示例中的 `gsm.example.edu`、`apps.example.edu`、`compute.example.edu` 和尖括号内容均为占位值，必须替换为自己的配置。文档不包含可直接登录的账号或密钥。
 
@@ -8,7 +8,7 @@
 
 | 功能 | 当前行为 |
 | --- | --- |
-| 成员与身份 | 管理员、教师、普通成员及只读角色；初始密码入组、首次改密、管理员 TOTP、会话撤销；教师不依赖毕业日期 |
+| 成员与身份 | 管理员、教师、普通成员及只读角色；初始密码入组、首次改密、管理员 TOTP、会话撤销；教师不依赖毕业日期，可管理名下学生账号（普通／高级／只读角色），不授予其他成员容器管理权限 |
 | 个人运行配额 | 默认 8 核 CPU、8 GiB 内存、0 张 GPU；统计当前占用资源的容器配置总额，不按瞬时利用率收费或计量 |
 | 临时提额 | 全站统一一级管理员、二级教师；由管理员指定；未配置的级别跳过，两级都为空则自动通过；到期回退但不终止运行任务 |
 | 超级用户 | 独立的个人配额豁免标记；管理员角色不自动豁免，仍受物理容量、GPU 冲突及存储保护限制 |
@@ -379,7 +379,7 @@ sudo bash scripts/deploy/restore_sqlite.sh <backup-key> <restore-ticket>
 
 ### 在线升级与自动回退
 
-`0.3.0-rc.6` 支持管理员在线安装更新。GitHub Release 提供发布资产，真正执行升级的是主机上的独立 root 服务。它在 API/Web 重启期间继续运行，网页可以恢复后继续查询同一操作。不会在无人确认时自动安装新版本。
+`0.3.0-rc.7` 支持管理员在线安装更新。GitHub Release 提供发布资产，真正执行升级的是主机上的独立 root 服务。它在 API/Web 重启期间继续运行，网页可以恢复后继续查询同一操作。不会在无人确认时自动安装新版本。
 
 新安装器会注册升级服务。已有部署先保存原配置，把对基础 Compose 的定制拆成持久扩展文件，再执行：
 
@@ -431,14 +431,14 @@ sudo journalctl -u gsm-upgrade-manager@<compose-project>.service -n 100 --no-pag
 
 ### 未公开仓库时的本地发布包
 
-每个 Release 必须有 `gpu-server-manager-0.3.0-rc.6-source.zip`（版本随发布变化）、`release-manifest.json` 和 `SHA256SUMS`。只有 GitHub 自动生成的 Source code 压缩包不能自动安装。清单包含大小、SHA-256、安装模式和更新协议；校验和保证一致性，发布来源仍依赖可信仓库及其发布权限。
+每个 Release 必须有 `gpu-server-manager-0.3.0-rc.7-source.zip`（版本随发布变化）、`release-manifest.json` 和 `SHA256SUMS`。只有 GitHub 自动生成的 Source code 压缩包不能自动安装。清单包含大小、SHA-256、安装模式和更新协议；校验和保证一致性，发布来源仍依赖可信仓库及其发布权限。
 
 本地包由 root 显式暂存，之后沿用相同升级事务，不必先将项目发布到 GitHub：
 
 ```bash
 sudo python3 /usr/local/lib/gpu-server-manager/upgrade_manager.py \
   --config /opt/gpu-server-manager/updater.json stage-local \
-  --archive /root/release/gpu-server-manager-0.3.0-rc.6-source.zip \
+  --archive /root/release/gpu-server-manager-0.3.0-rc.7-source.zip \
   --manifest /root/release/release-manifest.json
 sudo python3 /usr/local/lib/gpu-server-manager/upgrade_manager.py \
   --config /opt/gpu-server-manager/updater.json apply --prepared-id <上一步返回的ID>

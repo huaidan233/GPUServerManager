@@ -50,6 +50,22 @@ test("administrator with no containers sees a personal empty state and can go to
   expect(await screen.findByRole("table", { name: "课题组成员列表" })).toBeVisible();
 });
 
+test.each([
+  ["user", "active"], ["power_user", "active"], ["teacher", "active"], ["viewer", "active"],
+  ["admin", "pending_exit"], ["admin", "disabled"],
+] as const)("%s (%s) cannot see the administrator container shortcut or enter member management directly", (role, status) => {
+  const fetcher = vi.fn(async () => Response.json([]));
+  vi.stubGlobal("fetch", fetcher);
+  const data = { ...mockDashboardData, actor: { ...mockDashboardData.actor, role, status }, containers: [] };
+  const { rerender } = render(<Dashboard data={data} initialWorkspace="resources" />);
+  expect(screen.queryByRole("button", { name: /前往成员列表管理/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("tab", { name: "成员管理" })).not.toBeInTheDocument();
+  rerender(<Dashboard data={data} initialWorkspace="members" />);
+  expect(screen.getByRole("tab", { name: "概览" })).toHaveAttribute("aria-selected", "true");
+  expect(screen.queryByRole("table", { name: "课题组成员列表" })).not.toBeInTheDocument();
+  expect(fetcher).not.toHaveBeenCalledWith("/api/gsm/admin/members");
+});
+
 test("live GPU resource page refreshes every fifteen seconds", () => {
   vi.useFakeTimers();
   render(<Dashboard data={{ ...memberData, source: "api", servers: [] }} initialWorkspace="resources" />);

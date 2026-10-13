@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-CURRENT_VERSION = "0.3.0-rc.6"
+CURRENT_VERSION = "0.3.0-rc.7"
 PRODUCT = "gpu-server-manager"
 MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
 _VERSION = re.compile(r"v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(alpha|beta|rc)\.(0|[1-9]\d*))?")

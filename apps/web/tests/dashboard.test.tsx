@@ -246,7 +246,7 @@ test("pending-exit administrator navigation loses privileged workspaces", () => 
   expect(screen.getByRole("group", { name: "用户功能" })).toBeInTheDocument();
 });
 
-test("dashboard renders role overview and assigned teacher students", () => {
+test("dashboard renders role overview and assigned teacher students", async () => {
   const teacherData = {
     ...mockDashboardData,
     actor: {
@@ -274,11 +274,17 @@ test("dashboard renders role overview and assigned teacher students", () => {
     status: "active",
     version: 2,
     current_program: {
+      id: "program-alice",
+      enrollment_date: "2026-09-01",
       level: "master",
       expected_graduation_date: "2029-07-01",
     },
     program_history: [],
+    wechat_binding: null,
   }];
+  vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL) => Response.json(
+    url.toString() === "/api/gsm/teacher/students" ? teacherStudents : [],
+  )));
   const { rerender } = render(
     <Dashboard
       data={teacherData}
@@ -298,8 +304,8 @@ test("dashboard renders role overview and assigned teacher students", () => {
       initialWorkspace="students"
     />,
   );
-  expect(screen.getByRole("table", { name: "已分配学生列表" })).toBeInTheDocument();
-  expect(screen.getByText("Alice")).toBeInTheDocument();
+  expect(screen.getByRole("table", { name: "课题组成员列表" })).toBeInTheDocument();
+  expect(await screen.findByText("Alice")).toBeInTheDocument();
 });
 
 test("header controls navigate and refresh while unsupported mount sync is absent", () => {

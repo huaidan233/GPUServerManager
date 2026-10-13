@@ -384,6 +384,101 @@ def list_teacher_students(request: Request):
     )
 
 
+@member_router.get("/api/teacher/supervisors")
+def list_teacher_supervisors(request: Request):
+    _reject_unknown_query(request, set())
+    actor = _session_member_actor(request, mutate=False)
+    return _execute_member_call(
+        lambda: _member_service(request).list_supervisor_directory(actor=actor)
+    )
+
+
+@member_router.post("/api/teacher/students", status_code=201)
+def invite_teacher_student(payload: InviteMemberRequest, request: Request):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).invite(**_invite_arguments(payload), actor=actor)
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/supervisor")
+def teacher_student_supervisor(
+    member_id: str, payload: SupervisorAssignmentRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).assign_supervisor(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor, supervisor_member_id=payload.supervisor_member_id,
+        )
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/role")
+def teacher_student_role(
+    member_id: str, payload: RoleChangeRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).change_role(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor, role=payload.role.value, confirmation=payload.confirmation,
+        )
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/password-reset")
+def teacher_student_password_reset(
+    member_id: str, payload: ReasonCommandRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).issue_password_reset(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor, initial_password=True,
+        )
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/disable")
+def teacher_student_disable(
+    member_id: str, payload: DisableRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).disable(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor, confirmation=payload.confirmation,
+        )
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/reactivate")
+def teacher_student_reactivate(
+    member_id: str, payload: ReasonCommandRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).reactivate(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor,
+        )
+    )
+
+
+@member_router.post("/api/teacher/students/{member_id}/archive")
+def teacher_student_archive(
+    member_id: str, payload: ConfirmedReasonCommandRequest, request: Request,
+):
+    actor = _require_teacher_account_actor(request)
+    return _execute_member_call(
+        lambda: _member_service(request).archive(
+            member_id, expected_version=payload.expected_version,
+            reason=payload.reason, actor=actor, confirmation=payload.confirmation,
+        )
+    )
+
+
 @member_router.get("/api/teacher/students/{member_id}")
 def get_teacher_student(member_id: str, request: Request):
     _reject_unknown_query(request, set())
@@ -846,6 +941,13 @@ def _container_ssh_reprovisioner(
         }
 
     return reprovision
+
+
+def _require_teacher_account_actor(request: Request) -> dict:
+    actor = _session_member_actor(request, mutate=True)
+    if actor.get("role") != "teacher" or actor.get("status") != "active":
+        raise HTTPException(status_code=403, detail="active teacher required")
+    return actor
 
 
 def _require_member_admin(request: Request, *, mutate: bool) -> dict:

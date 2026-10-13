@@ -24,6 +24,7 @@ import { ownsContainer } from "../lib/containerOwnership";
 type ProgramLevel = "master" | "doctor";
 
 type Member = MemberDetail;
+type Supervisor = Pick<Member, "id" | "username" | "display_name" | "status">;
 
 type DialogKind =
   | "supervisor"
@@ -80,6 +81,9 @@ const TRANSFER_CONFIRMATION = "TRANSFER DATA OWNERSHIP";
 const PROMOTION_CONFIRMATION = "PROMOTE TO DOCTOR";
 
 export function MemberManagementPanel({ containers, currentMemberId, actor, onContainersUpdated }: MemberManagementPanelProps) {
+  const teacherMode = actor?.role === "teacher";
+  const apiBase = teacherMode ? "/api/gsm/teacher/students" : "/api/gsm/admin/members";
+  const [supervisorDirectory, setSupervisorDirectory] = useState<Supervisor[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,7 +103,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
   const [supervisorFilter, setSupervisorFilter] = useState("");
   const [selectedSupervisor, setSelectedSupervisor] = useState("");
   const [inviteSupervisor, setInviteSupervisor] = useState("");
-  const supervisors = members.filter((member) => ["invited", "active"].includes(member.status) && member.member_kind === "staff" && ["teacher", "admin"].includes(member.role));
+  const supervisors = teacherMode ? supervisorDirectory : members.filter((member) => ["invited", "active"].includes(member.status) && member.member_kind === "staff" && ["teacher", "admin"].includes(member.role));
 
   const currentYear = new Date().getFullYear();
   const [inviteUsername, setInviteUsername] = useState("");
@@ -125,11 +129,17 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
   const [submitting, setSubmitting] = useState(false);
 
   const loadMembers = useCallback(async () => {
-    const response = await fetch("/api/gsm/admin/members");
+    const response = await fetch(apiBase);
     const payload = await safeJson(response);
     if (!response.ok || !Array.isArray(payload)) throw new Error("成员目录暂时无法加载。");
     setMembers(payload.filter(isMember));
-  }, []);
+    if (teacherMode) {
+      const directoryResponse = await fetch("/api/gsm/teacher/supervisors");
+      const directory = await safeJson(directoryResponse);
+      if (!directoryResponse.ok || !Array.isArray(directory)) throw new Error("导师目录暂时无法加载。");
+      setSupervisorDirectory(directory);
+    }
+  }, [apiBase, teacherMode]);
 
   useEffect(() => {
     let active = true;
@@ -194,7 +204,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
       setInviteName("");
       setInviteRole("user");
       setInvitePassword("");
-      setInviteSupervisor("");
+      setInviteSupervisor(teacherMode ? actor?.userId ?? "" : "");
       setInviteLevel("master");
       setInviteYear(currentYear);
     }
@@ -237,14 +247,21 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
       const response = await authenticatedFetch(command.url, command.init);
       const payload = await safeJson(response);
       const detail = publicDetail(payload, "操作失败，请稍后重试。");
+      if (response.status === 409 && detail === "member still owns managed containers") {
+        throw new Error("该成员仍有容器，需由管理员处理容器后再归档。");
+      }
+      if (response.status === 409 && detail === "member still has an active WeChat binding") {
+        throw new Error("该成员仍绑定微信，请联系管理员解绑后再归档。");
+      }
       if (response.status === 409) {
         setDialog(null);
         await loadMembers();
-        setError("成员信息已被其他管理员更新，目录已经刷新，请重新确认后操作。");
+        setError("成员信息已发生变更或当前状态不支持此操作，目录已经刷新，请重新确认后操作。");
         return;
       }
       if (!response.ok) throw new Error(detail);
       applyCommandResult(payload, command);
+      if (teacherMode) onContainersUpdated?.();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "操作失败，请稍后重试。");
     } finally {
@@ -293,6 +310,9 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
     const member = isMember(wrappedMember) ? wrappedMember : (isMember(payload) ? payload : null);
     if (member) {
       setMembers((current) => {
+        if (teacherMode && member.supervisor_member_id !== currentMemberId) {
+          return current.filter((item) => item.id !== member.id);
+        }
         const found = current.some((item) => item.id === member.id);
         return found
           ? current.map((item) => item.id === member.id ? member : item)
@@ -325,7 +345,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
   async function submitInvite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await runCommand({
-      url: "/api/gsm/admin/members",
+      url: apiBase,
       kind: "invite",
       init: jsonPost({
         username: inviteUsername,
@@ -427,7 +447,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
     }
 
     await runCommand({
-      url: `/api/gsm/admin/members/${encodeURIComponent(selectedMember.id)}/${action}`,
+      url: `${apiBase}/${encodeURIComponent(selectedMember.id)}/${action}`,
       memberId: selectedMember.id,
       kind: ["password-reset", "wechat-pairing-code"].includes(action) ? "code" : "member",
       init: jsonPost(body),
@@ -442,13 +462,13 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
         <div className="workspace-title">
           <ShieldCheck size={22} aria-hidden="true" />
           <div>
-            <p className="eyebrow">管理员工作区</p>
-            <h2 id="member-management-heading">成员管理</h2>
-            <p>成员身份、培养周期和资源归属</p>
+            <p className="eyebrow">{teacherMode ? "教师工作区" : "管理员工作区"}</p>
+            <h2 id="member-management-heading">{teacherMode ? "我的学生" : "成员管理"}</h2>
+            <p>{teacherMode ? "管理名下学生的账号、培养信息与导师归属" : "成员身份、培养周期和资源归属"}</p>
           </div>
         </div>
         <div className="workspace-actions">
-          <a className="secondary-button" href="/templates/members.csv" download>下载 CSV 模板</a>
+          {!teacherMode && <><a className="secondary-button" href="/templates/members.csv" download>下载 CSV 模板</a>
           <label className="secondary-button file-button">
             <Upload size={16} aria-hidden="true" />导入 CSV
             <input
@@ -462,9 +482,9 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
                 void importCsv(file);
               }}
             />
-          </label>
+          </label></>}
           <button className="primary-button" type="button" onClick={() => openDialog("invite")}>
-            <UserPlus size={16} aria-hidden="true" />邀请成员
+            <UserPlus size={16} aria-hidden="true" />{teacherMode ? "新增学生" : "邀请成员"}
           </button>
         </div>
       </header>
@@ -473,7 +493,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
       {status && <p className="table-message" role="status">{status}</p>}
 
       <div className="member-filters" aria-label="成员筛选">
-        <label>导师筛选<select value={supervisorFilter} onChange={(event) => setSupervisorFilter(event.currentTarget.value)}><option value="">全部导师</option><option value="unassigned">未分配导师</option>{members.filter((m) => m.member_kind === "staff").map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label>
+        {!teacherMode && <label>导师筛选<select value={supervisorFilter} onChange={(event) => setSupervisorFilter(event.currentTarget.value)}><option value="">全部导师</option><option value="unassigned">未分配导师</option>{members.filter((m) => m.member_kind === "staff").map((m) => <option key={m.id} value={m.id}>{m.display_name}</option>)}</select></label>}
         <label>搜索成员<input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
         <label>成员状态筛选<select value={statusFilter} onChange={(event) => setStatusFilter(event.currentTarget.value)}>
           <option value="">全部状态</option>
@@ -484,8 +504,8 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
         <label>成员角色筛选<select value={roleFilter} onChange={(event) => setRoleFilter(event.currentTarget.value)}>
           <option value="">全部角色</option><option value="viewer">只读</option>
           <option value="user">成员</option><option value="power_user">高级成员</option>
-          <option value="teacher">教师</option>
-          <option value="admin">管理员</option>
+          {!teacherMode && <><option value="teacher">教师</option>
+          <option value="admin">管理员</option></>}
         </select></label>
         <label>培养层次筛选<select value={levelFilter} onChange={(event) => setLevelFilter(event.currentTarget.value)}>
           <option value="">全部层次</option><option value="master">硕士培养</option><option value="doctor">博士培养</option>
@@ -501,14 +521,14 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
           <thead>
             <tr>
               <th>成员</th><th>培养层次</th><th>角色</th><th>入学</th><th>预期毕业</th>
-              <th>剩余时间</th><th>状态</th><th>微信</th><th>容器</th><th>操作</th>
+              <th>剩余时间</th><th>状态</th><th>微信</th>{!teacherMode && <th>容器</th>}<th>操作</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} className="empty-state">正在加载成员目录...</td></tr>
+              <tr><td colSpan={teacherMode ? 9 : 10} className="empty-state">正在加载成员目录...</td></tr>
             ) : filteredMembers.length === 0 ? (
-              <tr><td colSpan={10} className="empty-state">没有符合条件的成员</td></tr>
+              <tr><td colSpan={teacherMode ? 9 : 10} className="empty-state">没有符合条件的成员</td></tr>
             ) : filteredMembers.map((member) => {
               const program = member.current_program;
               const inventory = ownedContainers(member.id);
@@ -522,7 +542,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
                   <td data-label="剩余时间">{program ? remainingLabel(program.expected_graduation_date) : "-"}</td>
                   <td data-label="状态"><span className={`status-pill ${member.status}`}>{statusLabel(member.status)}</span></td>
                   <td data-label="微信">{member.wechat_binding ? "已绑定" : "未绑定"}</td>
-                  <td data-label="容器"><button className="text-button" type="button" aria-label={`管理 ${member.display_name} 的容器`} onClick={(event) => { detailTriggerRef.current = event.currentTarget; setContainerMemberId(member.id); }}>{inventory.length} 个容器</button></td>
+                  {!teacherMode && <td data-label="容器"><button className="text-button" type="button" aria-label={`管理 ${member.display_name} 的容器`} onClick={(event) => { detailTriggerRef.current = event.currentTarget; setContainerMemberId(member.id); }}>{inventory.length} 个容器</button></td>}
                   <td data-label="操作">
                     <button
                       className="icon-button member-open-button"
@@ -548,15 +568,16 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
         <MemberDetailDrawer
           member={detailMember}
           containerCount={ownedContainers(detailMember.id).length}
-          supervisorName={members.find((member) => member.id === detailMember.supervisor_member_id)?.display_name}
+          supervisorName={supervisors.find((member) => member.id === detailMember.supervisor_member_id)?.display_name}
           triggerRef={detailTriggerRef}
           onClose={() => setDetailMemberId(null)}
           onAction={(kind) => openMemberAction(kind, detailMember)}
-          onManageContainers={() => { setContainerMemberId(detailMember.id); setDetailMemberId(null); }}
+          accountOnly={teacherMode}
+          onManageContainers={teacherMode ? undefined : () => { setContainerMemberId(detailMember.id); setDetailMemberId(null); }}
         />
       )}
 
-      {containerMember && (
+      {!teacherMode && containerMember && (
         <AccessibleDialog title={`${containerMember.display_name} 的容器`} className="member-containers-dialog" triggerRef={detailTriggerRef} onClose={() => setContainerMemberId(null)}>
           <div className="container-detail-toolbar">
             <p>@{containerMember.username} · 共 {memberContainers.length} 个容器</p>
@@ -570,7 +591,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
       )}
 
       {dialog?.kind === "invite" && (
-        <Dialog title="邀请成员" onClose={closeDialog}>
+        <Dialog title={teacherMode ? "新增学生" : "邀请成员"} onClose={closeDialog}>
           <form className="dialog-form" onSubmit={submitInvite}>
             <label htmlFor="invite-username">用户名</label>
             <input id="invite-username" required value={inviteUsername} onChange={(event) => setInviteUsername(event.currentTarget.value)} />
@@ -578,14 +599,14 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
             <input id="invite-name" required value={inviteName} onChange={(event) => setInviteName(event.currentTarget.value)} />
             <label htmlFor="invite-role">角色</label>
             <select id="invite-role" value={inviteRole} onChange={(event) => setInviteRole(event.currentTarget.value)}>
-              <option value="viewer">只读</option><option value="user">成员</option><option value="power_user">高级成员</option><option value="teacher">教师</option><option value="admin">管理员</option>
+              <option value="viewer">只读</option><option value="user">成员</option><option value="power_user">高级成员</option>{!teacherMode && <><option value="teacher">教师</option><option value="admin">管理员</option></>}
             </select>
             <label htmlFor="invite-password">初始密码（留空自动生成）</label>
             <input id="invite-password" type="password" autoComplete="new-password" minLength={12} maxLength={128} value={invitePassword} onChange={(event) => setInvitePassword(event.currentTarget.value)} />
             <p className="form-help">将用户名和初始密码交给成员；首次登录必须设置自己的新密码。微信配对由成员登录后自行设置。</p>
             {["teacher", "admin"].includes(inviteRole) ? <p className="academic-preview">教职工账户长期有效，无需填写入学或毕业时间。</p> : <>
-            <label htmlFor="invite-supervisor">导师（可选）</label><select id="invite-supervisor" aria-describedby="invite-supervisor-help" value={inviteSupervisor} onChange={(event) => setInviteSupervisor(event.currentTarget.value)}><option value="">暂不分配</option>{supervisors.map((m) => <option key={m.id} value={m.username}>{m.display_name} (@{m.username}){m.status === "invited" ? " · 待首次登录" : ""}</option>)}</select>
-            <p id="invite-supervisor-help" className="form-help">新建教师可直接分配为导师，教师完成首次登录改密后即可查看学生。</p>
+            <label htmlFor="invite-supervisor">导师（可选）</label><select id="invite-supervisor" aria-describedby="invite-supervisor-help" value={inviteSupervisor} onChange={(event) => setInviteSupervisor(event.currentTarget.value)}><option value="">{teacherMode ? "默认分配给我" : "暂不分配"}</option>{supervisors.map((m) => <option key={m.id} value={m.username}>{m.display_name} (@{m.username}){m.status === "invited" ? " · 待首次登录" : ""}</option>)}</select>
+            <p id="invite-supervisor-help" className="form-help">{teacherMode ? "默认归自己管理；选择其他导师后，该学生仅由对应导师和管理员管理。" : "新建教师可直接分配为导师，教师完成首次登录改密后即可查看学生。"}</p>
             <label htmlFor="invite-level">培养层次</label>
             <select id="invite-level" value={inviteLevel} onChange={(event) => setInviteLevel(event.currentTarget.value as ProgramLevel)}>
               <option value="master">硕士</option><option value="doctor">博士</option>
@@ -642,6 +663,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
         <form className="dialog-form" onSubmit={submitMemberCommand}>
           <label htmlFor="member-supervisor">导师</label><select id="member-supervisor" aria-describedby="member-supervisor-help" value={selectedSupervisor} onChange={(event) => setSelectedSupervisor(event.currentTarget.value)}><option value="">取消分配</option>{supervisors.map((m) => <option key={m.id} value={m.id}>{m.display_name} (@{m.username}){m.status === "invited" ? " · 待首次登录" : ""}</option>)}</select>
           <p id="member-supervisor-help" className="form-help">可选择已启用或待首次登录的教师、教职工管理员。教师完成首次登录改密后即可查看学生；已停用、离组或归档的账号不可分配。</p>
+          {teacherMode && <p className="form-help">转交其他导师或取消分配后，该学生会立即移出你的管理范围。</p>}
           <label htmlFor="supervisor-reason">分配原因</label><input id="supervisor-reason" required maxLength={500} value={reason} onChange={(event) => setReason(event.currentTarget.value)} />
           <DialogActions submitting={submitting} submitLabel="保存导师" disabled={!reason.trim()} onClose={closeDialog} />
         </form>
@@ -697,9 +719,9 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
       {selectedMember && dialog?.kind === "role" && (
         <Dialog title={`调整角色 ${selectedMember.display_name}`} onClose={closeDialog}>
           <form className="dialog-form" onSubmit={submitMemberCommand}>
-            <label htmlFor="member-role">新角色</label><select id="member-role" value={selectedRole} onChange={(event) => setSelectedRole(event.currentTarget.value)}>{selectedMember.current_program ? <><option value="viewer">只读</option><option value="user">成员</option><option value="power_user">高级成员</option></> : <option value="teacher">教师</option>}<option value="admin">管理员</option></select>
+            <label htmlFor="member-role">新角色</label><select id="member-role" value={selectedRole} onChange={(event) => setSelectedRole(event.currentTarget.value)}>{selectedMember.current_program ? <><option value="viewer">只读</option><option value="user">成员</option><option value="power_user">高级成员</option></> : <option value="teacher">教师</option>}{!teacherMode && <option value="admin">管理员</option>}</select>
             <label htmlFor="role-reason">变更原因</label><textarea id="role-reason" required value={reason} onChange={(event) => setReason(event.currentTarget.value)} />
-            <label htmlFor="role-confirmation">角色变更确认短语（需要时）</label><input id="role-confirmation" spellCheck={false} value={confirmation} onChange={(event) => setConfirmation(event.currentTarget.value)} />
+            {!teacherMode && <><label htmlFor="role-confirmation">角色变更确认短语（需要时）</label><input id="role-confirmation" spellCheck={false} value={confirmation} onChange={(event) => setConfirmation(event.currentTarget.value)} /></>}
             {selectedMember.id === currentMemberId && selectedMember.role === "admin" && selectedRole !== "admin" && (
               <code className="required-phrase">DEMOTE MY ADMIN ACCOUNT</code>
             )}
@@ -733,7 +755,7 @@ export function MemberManagementPanel({ containers, currentMemberId, actor, onCo
         />
       )}
 
-      {selectedMember && dialog?.kind === "transfer" && (
+      {!teacherMode && selectedMember && dialog?.kind === "transfer" && (
         <Dialog title={`转移容器 ${selectedMember.display_name}`} onClose={closeDialog} wide>
           <form className="dialog-form" onSubmit={submitMemberCommand}>
             <div className="transfer-inventory">
@@ -816,7 +838,7 @@ function reasonDialogConfig(kind: ReasonDialogKind, member: Member, requireSelfC
     "revoke-sessions": { title: "撤销会话", reasonLabel: "撤销原因", submitLabel: "撤销全部会话", consequence: "该成员需要重新登录。", danger: true },
     "wechat-pairing-code": { title: "生成微信配对码", reasonLabel: "生成原因", submitLabel: "生成配对码", consequence: "旧的未使用配对码将失效。", danger: false },
     "wechat-unbind": { title: "解绑微信", reasonLabel: "解绑原因", submitLabel: "确认解绑", consequence: "当前微信路由将立即失去操作权限。", danger: true },
-    "disable": { title: "停用成员", reasonLabel: "停用原因", submitLabel: "确认停用", consequence: "Web 与微信访问将停用，并禁止签发新 SSH 证书；容器不会停止，已有 SSH 密码和证书仍可直连。", danger: true, exactConfirmation: requireSelfConfirmation ? "DISABLE MY ACCOUNT" : undefined },
+    "disable": { title: "停用成员", reasonLabel: "停用原因", submitLabel: "确认停用", consequence: "Web 与微信访问将停用，并禁止签发新 SSH 证书；容器不会停止，已签发的永久 SSH 证书不随网页账号停用而撤销。如需中断直连，请联系管理员。", danger: true, exactConfirmation: requireSelfConfirmation ? "DISABLE MY ACCOUNT" : undefined },
     "reactivate": { title: "重新启用成员", reasonLabel: "启用原因", submitLabel: "确认启用", consequence: "成员将恢复在组身份，但旧会话不会恢复。", danger: false },
     "archive": { title: "归档成员", reasonLabel: "归档原因", submitLabel: "确认归档", consequence: "归档后成员历史不可再修改。", danger: true, exactConfirmation: `ARCHIVE ${member.username}` },
   };

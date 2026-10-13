@@ -221,7 +221,15 @@ class MemberService:
         initial_password: str | None = None,
         supervisor_username: str | None = None,
     ) -> dict:
-        actor_id = self._require_admin(actor)
+        is_teacher = self._actor_value(actor, "role") == Role.TEACHER.value
+        if is_teacher:
+            actor_id = self._require_teacher(actor)
+            if role not in {"user", "power_user", "viewer"} or member_kind != "student":
+                raise MemberAuthorizationError("教师只能新建普通、高级或只读学生账号。")
+            if not supervisor_username or not supervisor_username.strip():
+                supervisor_username = self._member(actor_id)["username"]
+        else:
+            actor_id = self._require_admin(actor)
         normalized_username = username.strip()
         normalized_display_name = display_name.strip()
         if not normalized_username or len(normalized_username) > 128:
@@ -403,12 +411,12 @@ class MemberService:
     def _invitation_result(self, prepared: dict, *, actor) -> dict:
         if prepared.get("initial_password") is not None:
             return {
-                "member": self.get_member(prepared["member"]["id"], actor=actor),
+                "member": self._detail(self._member(prepared["member"]["id"])),
                 "initial_password": prepared["initial_password"],
                 "requires_password_change": True,
             }
         return {
-            "member": self.get_member(prepared["member"]["id"], actor=actor),
+            "member": self._detail(self._member(prepared["member"]["id"])),
             "activation_code": prepared["activation_code"],
             "wechat_pairing_code": prepared["wechat_pairing_code"],
         }
@@ -422,9 +430,9 @@ class MemberService:
         reason: str,
         actor,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         self._require_mutable(member)
         if member.get("member_kind") != MemberKind.STUDENT.value:
             raise MemberConflict("only students may have supervisors")
@@ -510,6 +518,7 @@ class MemberService:
             for member in self._store.list_members()
             if member.get("member_kind") == MemberKind.STUDENT.value
             and member.get("supervisor_member_id") == actor_id
+            and member.get("role") in {"user", "power_user", "viewer"}
         ]
 
     def get_assigned_student(self, member_id: str, *, actor) -> dict:
@@ -518,6 +527,7 @@ class MemberService:
         if (
             member.get("member_kind") != MemberKind.STUDENT.value
             or member.get("supervisor_member_id") != actor_id
+            or member.get("role") not in {"user", "power_user", "viewer"}
         ):
             raise MemberAuthorizationError("student is outside teacher scope")
         return self._detail(member)
@@ -641,10 +651,14 @@ class MemberService:
         actor,
         confirmation: str | None = None,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         self._require_mutable(member)
+        if self._actor_value(actor, "role") == Role.TEACHER.value and role not in {
+            "user", "power_user", "viewer"
+        }:
+            raise MemberAuthorizationError("教师只能设置普通、高级或只读学生角色。")
         new_role = self._role(role)
         kind = self._member_kind(str(member["member_kind"]))
         if not role_allows_member_kind(new_role, kind):
@@ -849,9 +863,9 @@ class MemberService:
         actor,
         initial_password: bool = False,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         self._require_mutable(member)
         if member["status"] == MemberStatus.DISABLED.value:
             raise MemberConflict("reactivate member before resetting the password")
@@ -1083,9 +1097,9 @@ class MemberService:
         actor,
         confirmation: str | None = None,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         source = self._status(member["status"])
         if member["role"] == Role.ADMIN.value and source is MemberStatus.ACTIVE:
             if member_id == actor_id and confirmation != SELF_DISABLE_CONFIRMATION:
@@ -1132,9 +1146,9 @@ class MemberService:
         reason: str,
         actor,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         try:
             validate_status_transition(
                 self._status(member["status"]),
@@ -1175,9 +1189,9 @@ class MemberService:
         confirmation: str,
         actor,
     ) -> dict:
-        actor_id = self._require_admin(actor)
         explanation = self._reason(reason)
         member = self._member(member_id)
+        actor_id = self._require_account_manager(actor, member)
         if confirmation != f"ARCHIVE {member['username']}":
             raise MemberValidationError("exact archive confirmation required")
         if member["status"] != MemberStatus.DISABLED.value:
@@ -1678,6 +1692,20 @@ class MemberService:
             )
         return member_id
 
+    def _require_account_manager(self, actor, member: dict) -> str:
+        # Account delegation never grants member.manage or infrastructure.manage.
+        if self._actor_value(actor, "role") == Role.ADMIN.value:
+            return self._require_admin(actor)
+        return self._require_program_manager(actor, member)
+
+    def list_supervisor_directory(self, *, actor) -> list[dict]:
+        self._require_teacher(actor)
+        return [
+            {key: member[key] for key in ("id", "username", "display_name", "status")}
+            for member in self._store.list_members()
+            if _can_assign_supervisor(member)
+        ]
+
     def _require_program_manager(self, actor, member: dict) -> str:
         role_value = self._actor_value(actor, "role")
         status_value = self._actor_value(actor, "status")
@@ -1702,6 +1730,7 @@ class MemberService:
                 actor_id
                 and member.get("member_kind") == MemberKind.STUDENT.value
                 and member.get("supervisor_member_id") == str(actor_id)
+                and member.get("role") in {"user", "power_user", "viewer"}
             ):
                 return str(actor_id)
             raise MemberAuthorizationError("student is outside teacher scope")

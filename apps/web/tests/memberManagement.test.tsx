@@ -336,7 +336,7 @@ test("reloads the directory on an optimistic version conflict", async () => {
   fireEvent.change(screen.getByLabelText("延期原因"), { target: { value: "实验延期" } });
   fireEvent.click(screen.getByRole("button", { name: "确认延期" }));
 
-  expect(await screen.findByRole("alert")).toHaveTextContent("成员信息已被其他管理员更新");
+  expect(await screen.findByRole("alert")).toHaveTextContent("成员信息已发生变更或当前状态不支持此操作");
   await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
 });
 
@@ -440,4 +440,83 @@ test("requires exact confirmation for self demotion and self disable", async () 
     target: { value: "DISABLE MY ACCOUNT" },
   });
   expect(screen.getByRole("button", { name: "确认停用" })).toBeEnabled();
+});
+
+
+const teacherActor = { userId: "teacher", memberId: "member-teacher", role: "teacher" as const, status: "active" };
+const teacherStudent = { ...master, member_kind: "student", supervisor_member_id: "member-teacher" };
+const teacherDirectory = [
+  { id: "member-teacher", username: "teacher", display_name: "Professor Li", status: "active" },
+  { id: "other-teacher", username: "other", display_name: "Professor Wang", status: "invited" },
+];
+
+test("teacher student management hides containers and privileged role choices", async () => {
+  const fetched = vi.fn(async (url: RequestInfo | URL) => Response.json(url.toString().endsWith("supervisors") ? teacherDirectory : [teacherStudent]));
+  vi.stubGlobal("fetch", fetched);
+  render(<MemberManagementPanel containers={mockDashboardData.containers} currentMemberId="member-teacher" actor={teacherActor} />);
+  await screen.findByText("Alice Zhang");
+  expect(screen.getByRole("heading", { name: "我的学生" })).toBeVisible();
+  expect(screen.queryByRole("columnheader", { name: "容器" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /管理.*容器/ })).not.toBeInTheDocument();
+  expect(screen.queryByLabelText("导入 CSV")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "打开 Alice Zhang" }));
+  fireEvent.click(screen.getByRole("button", { name: "Alice Zhang 的更多操作" }));
+  expect(screen.queryByRole("button", { name: /容器|解绑微信|撤销会话/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "调整角色 Alice Zhang" }));
+  expect(within(screen.getByLabelText("新角色")).getAllByRole("option").map(o => o.getAttribute("value"))).toEqual(["viewer", "user", "power_user"]);
+  expect(fetched.mock.calls.every(([url]) => url.toString().startsWith("/api/gsm/teacher/"))).toBe(true);
+});
+
+test("teacher creates a student with own supervision and one-time password", async () => {
+  const fetched = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") return Response.json({ member: { ...teacherStudent, id: "new-student", username: "new", display_name: "New Student" }, initial_password: "generated-initial-password" });
+    return Response.json(url.toString().endsWith("supervisors") ? teacherDirectory : [teacherStudent]);
+  });
+  vi.stubGlobal("fetch", fetched);
+  render(<MemberManagementPanel containers={[]} currentMemberId="member-teacher" actor={teacherActor} />);
+  await screen.findByText("Alice Zhang");
+  fireEvent.click(screen.getByRole("button", { name: "新增学生" }));
+  expect(screen.getByLabelText("导师（可选）")).toHaveValue("teacher");
+  expect(within(screen.getByLabelText("角色")).getAllByRole("option")).toHaveLength(3);
+  fireEvent.change(screen.getByLabelText("用户名"), { target: { value: "new" } });
+  fireEvent.change(screen.getByLabelText("姓名"), { target: { value: "New Student" } });
+  fireEvent.click(screen.getByRole("button", { name: "确认邀请" }));
+  expect(await screen.findByText("generated-initial-password")).toBeVisible();
+  const posted = fetched.mock.calls.find(([, init]) => init?.method === "POST")!;
+  expect(posted[0]).toBe("/api/gsm/teacher/students");
+  expect(JSON.parse(posted[1]!.body as string)).toMatchObject({ role: "user", member_kind: "student", supervisor_username: "teacher" });
+});
+
+test("teacher reassignment removes the student from the local directory immediately", async () => {
+  const fetched = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") return Response.json({ ...teacherStudent, supervisor_member_id: "other-teacher", version: 4 });
+    return Response.json(url.toString().endsWith("supervisors") ? teacherDirectory : [teacherStudent]);
+  });
+  vi.stubGlobal("fetch", fetched);
+  render(<MemberManagementPanel containers={[]} currentMemberId="member-teacher" actor={teacherActor} />);
+  await screen.findByText("Alice Zhang");
+  openMemberAction("Alice Zhang", "分配导师");
+  fireEvent.change(screen.getByLabelText("导师"), { target: { value: "other-teacher" } });
+  fireEvent.change(screen.getByLabelText("分配原因"), { target: { value: "research group transfer" } });
+  fireEvent.click(screen.getByRole("button", { name: "保存导师" }));
+  await waitFor(() => expect(screen.queryByRole("button", { name: "打开 Alice Zhang" })).not.toBeInTheDocument());
+  expect(fetched).toHaveBeenCalledWith("/api/gsm/teacher/students/member-alice/supervisor", expect.objectContaining({ method: "POST" }));
+});
+
+test.each([
+  ["重置密码", "重置原因", "生成初始密码", "password-reset"],
+  ["停用", "停用原因", "确认停用", "disable"],
+  ["调整角色", "变更原因", "确认角色变更", "role"],
+])("teacher %s uses scoped account API", async (action, reason, submit, suffix) => {
+  const fetched = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === "POST") return Response.json(suffix === "password-reset" ? { member: teacherStudent, initial_password: "new-initial-password" } : teacherStudent);
+    return Response.json(url.toString().endsWith("supervisors") ? teacherDirectory : [teacherStudent]);
+  });
+  vi.stubGlobal("fetch", fetched);
+  render(<MemberManagementPanel containers={[]} currentMemberId="member-teacher" actor={teacherActor} />);
+  await screen.findByText("Alice Zhang");
+  openMemberAction("Alice Zhang", action);
+  fireEvent.change(screen.getByLabelText(reason), { target: { value: "account maintenance" } });
+  fireEvent.click(screen.getByRole("button", { name: submit }));
+  await waitFor(() => expect(fetched).toHaveBeenCalledWith(`/api/gsm/teacher/students/member-alice/${suffix}`, expect.objectContaining({ method: "POST" })));
 });

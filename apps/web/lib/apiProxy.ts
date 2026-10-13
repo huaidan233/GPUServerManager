@@ -136,7 +136,16 @@ export async function proxyTeacherStudents(
   return proxyCentralRequest(request, "/teacher/students", "GET", options);
 }
 
+export async function proxyTeacherStudentInvite(request: Request, options: ProxyOptions = {}): Promise<Response> {
+  return proxyJsonRequest(request, "/teacher/students", "POST", options);
+}
+
+export async function proxyTeacherSupervisors(request: Request, options: ProxyOptions = {}): Promise<Response> {
+  return proxyCentralRequest(request, "/teacher/supervisors", "GET", options);
+}
+
 const allowedTeacherStudentActions = new Set([
+  "supervisor", "role", "password-reset", "disable", "reactivate", "archive",
   "profile-correction",
   "extend",
   "promote-to-doctor",

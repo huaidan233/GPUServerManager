@@ -54,6 +54,8 @@ import {
   proxyAuthRevokeOtherSessions,
   proxyAuthSession,
   proxyTeacherStudents,
+  proxyTeacherStudentInvite,
+  proxyTeacherSupervisors,
   proxyTeacherStudentAction,
   proxyWorkspaceOverview,
 } from "../lib/apiProxy";
@@ -828,7 +830,7 @@ describe("member workspace proxy", () => {
     await proxyTeacherStudentAction("member/alice", "extend", request(), options);
     const rejected = await proxyTeacherStudentAction(
       "member-alice",
-      "password-reset",
+      "containers/transfer",
       request(),
       options,
     );
@@ -1001,4 +1003,27 @@ describe("print multipart proxy", () => {
     expect(fetcher).not.toHaveBeenCalled();
     vi.unstubAllEnvs();
   });
+});
+
+
+test("teacher account proxies allow explicit account actions without container/admin routes", async () => {
+  const fetcher = vi.fn(async () => Response.json({ ok: true }));
+  const options = { apiUrl: "http://api:8000", fetcher };
+  const request = () => new Request("https://gsm.test/api/gsm/teacher/students", {
+    method: "POST", headers: { Cookie: "gsm_session=session; gsm_csrf=csrf", "X-CSRF-Token": "csrf", "Content-Type": "application/json" },
+    body: JSON.stringify({ expected_version: 1, reason: "account maintenance" }),
+  });
+  await proxyTeacherStudentInvite(request(), options);
+  expect(fetcher).toHaveBeenLastCalledWith("http://api:8000/api/teacher/students", expect.objectContaining({ method: "POST" }));
+  await proxyTeacherSupervisors(new Request("https://gsm.test", { headers: { Cookie: "gsm_session=session" } }), options);
+  expect(fetcher).toHaveBeenLastCalledWith("http://api:8000/api/teacher/supervisors", expect.objectContaining({ method: "GET" }));
+  for (const action of ["supervisor", "role", "password-reset", "disable", "reactivate", "archive"]) {
+    expect((await proxyTeacherStudentAction("student", action, request(), options)).status).toBe(200);
+    expect(fetcher).toHaveBeenLastCalledWith(`http://api:8000/api/teacher/students/student/${action}`, expect.objectContaining({ method: "POST" }));
+  }
+  const before = fetcher.mock.calls.length;
+  for (const action of ["containers/transfer", "ssh-password", "wechat-unbind", "revoke-sessions", "start"]) {
+    expect((await proxyTeacherStudentAction("student", action, request(), options)).status).toBe(404);
+  }
+  expect(fetcher).toHaveBeenCalledTimes(before);
 });

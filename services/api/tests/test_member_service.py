@@ -348,7 +348,7 @@ def test_teacher_lists_and_extends_only_assigned_students(service, store, audit)
         )
 
 
-def test_teacher_cannot_use_assigned_scope_for_security_commands(service, store):
+def test_teacher_can_reset_assigned_student_but_cannot_revoke_sessions(service, store):
     seed_staff(store)
     assigned = seed_member(store)
     assigned = store.update_member(
@@ -357,12 +357,16 @@ def test_teacher_cannot_use_assigned_scope_for_security_commands(service, store)
         {"supervisor_member_id": TEACHER["id"]},
     )
 
+    reset = service.issue_password_reset(
+        assigned["id"], expected_version=assigned["version"],
+        reason="student forgot password", actor=TEACHER, initial_password=True,
+    )
+    assert reset["initial_password"]
+    assert reset["requires_password_change"] is True
     with pytest.raises(MemberAuthorizationError, match="administrator"):
-        service.issue_password_reset(
-            assigned["id"],
-            expected_version=assigned["version"],
-            reason="teacher attempted credential reset",
-            actor=TEACHER,
+        service.revoke_sessions(
+            assigned["id"], expected_version=reset["member"]["version"],
+            reason="separate security control", actor=TEACHER,
         )
 
 

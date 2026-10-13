@@ -52,7 +52,7 @@ class McpServer:
             "capabilities": {"tools": {"listChanged": False}},
             "serverInfo": {
                 "name": "gpu-server-manager",
-                "version": "0.3.0-rc.6",
+                "version": "0.3.0-rc.7",
             },
             "instructions": SERVER_INSTRUCTIONS,
         }

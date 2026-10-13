@@ -188,6 +188,33 @@ def session_headers(auth, username="alice", *, totp_code=None):
     }
 
 
+@pytest.mark.parametrize("role", ["user", "power_user", "teacher", "viewer"])
+@pytest.mark.parametrize("superuser", [False, True])
+def test_member_management_requires_admin_even_for_quota_superusers(production_auth, role, superuser):
+    client, store, auth = production_auth
+    member = seed_member(store, auth, role=role)
+    store.update_member(member["id"], member["version"], {"superuser": superuser})
+    other = seed_member(store, auth, username="other")
+    headers = session_headers(auth)
+
+    for path in ["/api/admin/members", f"/api/admin/members/{other['id']}"]:
+        response = client.get(path, headers=headers)
+        assert response.status_code == 403
+        assert response.json()["detail"] == "active administrator required"
+
+
+def test_member_management_rechecks_admin_role_on_every_request(production_auth):
+    client, store, auth = production_auth
+    member = seed_member(store, auth, role="admin")
+    enrollment = auth.enroll_admin_mfa(member["id"], account_name=member["username"])
+    code = pyotp.TOTP(enrollment.secret).at(int(NOW.timestamp()))
+    headers = session_headers(auth, totp_code=code)
+    assert client.get("/api/admin/members", headers=headers).status_code == 200
+    current = store.get_member(member["id"])
+    store.update_member(member["id"], current["version"], {"role": "user"})
+    assert client.get("/api/admin/members", headers=headers).status_code == 403
+
+
 def container_payload(name="job"):
     return {
         "name": name,
