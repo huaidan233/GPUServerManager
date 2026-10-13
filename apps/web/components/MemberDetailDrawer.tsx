@@ -62,6 +62,7 @@ type MemberDetailDrawerProps = {
   supervisorName?: string;
   triggerRef: RefObject<HTMLElement | null>;
   onAction: (kind: MemberActionKind) => void;
+  onManageContainers: () => void;
   onClose: () => void;
 };
 
@@ -71,6 +72,7 @@ export function MemberDetailDrawer({
   supervisorName,
   triggerRef,
   onAction,
+  onManageContainers,
   onClose,
 }: MemberDetailDrawerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -97,7 +99,7 @@ export function MemberDetailDrawer({
         <div><dt>入学日期</dt><dd>{program?.enrollment_date ?? "-"}</dd></div>
         <div><dt>预计毕业</dt><dd>{program?.expected_graduation_date ?? "长期有效"}</dd></div>
         <div><dt>微信</dt><dd>{member.wechat_binding ? "已绑定" : "未绑定"}</dd></div>
-        <div><dt>Docker / SSH</dt><dd>{containerCount} 个容器，无持久密钥</dd></div>
+        <div><dt>容器</dt><dd>{containerCount} 个容器 <button className="text-button" type="button" onClick={onManageContainers}>管理容器</button></dd></div>
       </dl>
 
       <div className="member-action-menu-wrap">

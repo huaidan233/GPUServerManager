@@ -24,11 +24,11 @@
 
 ## 每次版本发布
 
-候选版标签示例 `v0.3.0-rc.5`。在已提交且干净的工作树执行：
+候选版标签示例 `v0.3.0-rc.6`。在已提交且干净的工作树执行：
 
 ```bash
 python scripts/release/check_public_source.py
-python scripts/release/build_release.py --tag v0.3.0-rc.5 --output dist/release
+python scripts/release/build_release.py --tag v0.3.0-rc.6 --output dist/release
 ```
 
 打包器拒绝未提交变更和已有同名产物；发布包不包含 Git 历史。首次公开应从审查后的发布快照建立新的干净 Git 历史，不将原私有仓库历史直接 push 到公开仓库。保留旧私有仓库作为内部可追溯备份。
@@ -42,7 +42,7 @@ python scripts/release/build_release.py --tag v0.3.0-rc.5 --output dist/release
 - [ ] 执行数据库迁移预检、升级和回滚演练；涉及部署时再次执行备份恢复 smoke。
 - [ ] 更新 `CHANGELOG.md` 和兼容性说明，明确破坏性变化、迁移步骤与剩余风险。
 - [ ] 创建带签名或受保护的版本标签，发布构建产物及 SHA-256 校验和。
-- [ ] `0.3.0-rc.5` 使用预发布标志，Python 元数据为 `0.3.0rc5`；稳定更新通道不应向稳定版用户静默推荐候选版。
+- [ ] `0.3.0-rc.6` 使用预发布标志，Python 元数据为 `0.3.0rc6`；稳定更新通道不应向稳定版用户静默推荐候选版。
 - [ ] 校验发布 manifest、包内版本、文件清单与 SHA-256；包中不包含 `.env`、运行状态、私人配置、验收日志、Git 历史或依赖缓存。
 - [ ] 完整历史扫描若发现秘密，先轮换再清理历史；删除当前文件不能消除旧提交中的泄露。原始历史未完成审核时，从已审计发布快照建立干净的公开历史。
 - [ ] 分别验证“准备成功”与“安装成功”；确认动态验证码、root 执行器、永久 IPC 扩展、迁移前快照和失败回退均有效，升级说明包含维护与恢复步骤。

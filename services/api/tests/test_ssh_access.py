@@ -68,7 +68,28 @@ def test_ssh_certificate_is_member_and_container_bound(key_material):
     assert details.identity == "gsm-managed-access"
     assert details.principals == ["gsm:m1:c1"]
     assert details.valid_after == NOW - timedelta(minutes=5)
-    assert details.valid_before <= NOW + timedelta(minutes=15)
+    assert details.valid_before is None
+    from cryptography.hazmat.primitives.serialization import load_ssh_public_identity
+    parsed = load_ssh_public_identity(certificate.encode("ascii"))
+    parsed.verify_cert_signature()
+    assert parsed.valid_before == (1 << 64) - 1
+    assert parsed.valid_principals == [b"gsm:m1:c1"]
+
+
+def test_ssh_certificate_reader_still_accepts_legacy_expiring_certificates(key_material):
+    module = importlib.import_module("gsm_api.ssh_access")
+    ca_path, public_key = key_material
+    issuer = module.SSHCertificateIssuer(ca_private_key_path=ca_path)
+    certificate = issuer.issue(member_id="m1", container_id="c1", public_key=public_key,
+                               now=NOW, validity=timedelta(minutes=15))
+    assert issuer.inspect(certificate).valid_before == NOW + timedelta(minutes=15)
+
+
+@pytest.mark.parametrize("validity", ["", "Valid: unknown", "Valid: after invalid", "Valid: forever"])
+def test_missing_or_malformed_validity_is_not_treated_as_permanent(validity):
+    from gsm_api.ssh_access import _parse_certificate_details
+    with pytest.raises(ValueError):
+        _parse_certificate_details(f'Key ID: "gsm-managed-access"\n{validity}\nPrincipals:\n  gsm:m1:c1\n')
 
 
 def test_installer_ca_and_member_key_allow_multiword_comments(key_material, monkeypatch):

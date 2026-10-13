@@ -2186,6 +2186,22 @@ button:disabled {
   width: min(720px, 100%);
 }
 
+.member-containers-dialog {
+  width: min(1280px, 100%);
+}
+
+.text-button {
+  border: 0;
+  padding: 4px 0;
+  color: var(--accent);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .dialog-form {
   display: grid;
   gap: 10px;

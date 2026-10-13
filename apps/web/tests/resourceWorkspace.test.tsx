@@ -12,7 +12,8 @@ vi.mock("next/navigation", () => ({ useRouter: () => navigation }));
 
 const memberData = {
   ...mockDashboardData,
-  actor: { ...mockDashboardData.actor, role: "user" as const, status: "active" },
+  actor: { ...mockDashboardData.actor, memberId: "member-alice", userId: "alice", role: "user" as const, status: "active" },
+  containers: mockDashboardData.containers.map(container => ({ ...container, ownerMemberId: "member-alice", user: "alice", sshCommand: "" })),
 };
 
 beforeEach(() => {
@@ -23,6 +24,30 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+test.each(["admin", "teacher", "user"] as const)("%s personal container list excludes other members and uses member ID before legacy username", role => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ password: null, state: "not_set" })));
+  const own = { ...mockDashboardData.containers[0], id: "own", name: "my-research", ownerMemberId: "member-alice", user: "alice", sshCommand: "" };
+  const legacy = { ...own, id: "legacy", name: "my-legacy", ownerMemberId: undefined, status: "stopped" };
+  const other = { ...own, id: "other", name: "someone-else", ownerMemberId: "member-other" };
+  render(<Dashboard data={{ ...mockDashboardData, actor: { userId: "alice", memberId: "member-alice", role }, containers: [other, legacy, own] }} initialWorkspace="resources" />);
+  expect(screen.getByRole("heading", { name: "我的容器" })).toBeVisible();
+  const table = within(screen.getByRole("table", { name: "容器列表" }));
+  expect(table.getByRole("button", { name: "管理 my-research" })).toBeVisible();
+  expect(table.getByRole("button", { name: "管理 my-legacy" })).toBeVisible();
+  expect(table.queryByRole("button", { name: "管理 someone-else" })).not.toBeInTheDocument();
+  expect(screen.getByText("1 个运行中 · 共 2 个 · 运行中的容器优先显示。")).toBeVisible();
+});
+
+test("administrator with no containers sees a personal empty state and can go to member management", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json([])));
+  render(<Dashboard data={mockDashboardData} initialWorkspace="resources" />);
+  expect(screen.getByText("你还没有容器")).toBeVisible();
+  expect(screen.getByText("0 个运行中 · 共 0 个 · 运行中的容器优先显示。")).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /前往成员列表管理/ }));
+  expect(navigation.replace).toHaveBeenCalledWith("/?workspace=members", { scroll: false });
+  expect(await screen.findByRole("table", { name: "课题组成员列表" })).toBeVisible();
 });
 
 test("live GPU resource page refreshes every fifteen seconds", () => {

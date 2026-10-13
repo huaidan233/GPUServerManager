@@ -10,7 +10,7 @@ type CertificateResult = {
   certificate: string;
   principal: string;
   valid_after: string;
-  valid_before: string;
+  valid_before: string | null;
 };
 
 type Props = {
@@ -25,6 +25,9 @@ export function SSHConnectionDialog({ containerId, sshCommand, onClose }: Props)
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState("");
+  const certificateName = `gsm_member-${encodeURIComponent(containerId)}-cert.pub`;
+  const certificatePath = `~/.ssh/${certificateName}`;
+  const certificateCommand = sshCommand.replace(/^ssh\b/, `ssh -i ~/.ssh/gsm_member -o CertificateFile=${certificatePath}`);
 
   async function issueCertificate() {
     setBusy(true);
@@ -66,7 +69,7 @@ export function SSHConnectionDialog({ containerId, sshCommand, onClose }: Props)
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "gsm_member-cert.pub";
+    link.download = certificateName;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -75,7 +78,7 @@ export function SSHConnectionDialog({ containerId, sshCommand, onClose }: Props)
     <AccessibleDialog title="配置 SSH 连接" onClose={onClose} destructiveBusy={busy}>
       {!result ? (
         <>
-          <p>SSH 使用你的本地私钥和平台签发的短期证书。私钥不会上传到平台。</p>
+          <p>证书仅用于你在当前容器的 SSH 登录，永久有效，无需定期续签。私钥保存在本机，不会上传到平台。</p>
           <div className="ssh-setup-steps">
             <strong>第一次使用？先在本机生成密钥</strong>
             <code>ssh-keygen -t ed25519 -f ~/.ssh/gsm_member</code>
@@ -95,25 +98,27 @@ export function SSHConnectionDialog({ containerId, sshCommand, onClose }: Props)
           <div className="dialog-actions">
             <button className="secondary-button" type="button" onClick={onClose} disabled={busy}>取消</button>
             <button className="primary-button" type="button" onClick={issueCertificate} disabled={busy || !publicKey.trim()}>
-              <KeyRound size={16} aria-hidden="true" />{busy ? "签发中" : "签发短期证书"}
+              <KeyRound size={16} aria-hidden="true" />{busy ? "签发中" : "签发永久证书"}
             </button>
           </div>
         </>
       ) : (
         <>
-          <p className="container-notice">证书有效期至 {formatDate(result.valid_before)}。证书过期后重新打开此向导即可签发。</p>
+          <p className="container-notice">{result.valid_before === null
+            ? "永久有效，无需续签。此证书仅限当前成员与当前容器使用。"
+            : `证书有效期至 ${formatDate(result.valid_before)}。这是旧版短期证书，到期后需重新签发。`}</p>
           <section className="ssh-result-section" aria-labelledby="ssh-command-heading">
             <h3 id="ssh-command-heading"><TerminalSquare size={16} aria-hidden="true" />连接命令</h3>
             <div className="container-copy-value">
-              <code>{sshCommand}</code>
-              <button className="secondary-button" type="button" onClick={() => void copyValue("连接命令", sshCommand)}>
+              <code>{certificateCommand}</code>
+              <button className="secondary-button" type="button" onClick={() => void copyValue("连接命令", certificateCommand)}>
                 <Clipboard size={14} aria-hidden="true" />复制
               </button>
             </div>
           </section>
           <section className="ssh-result-section" aria-labelledby="ssh-cert-heading">
             <h3 id="ssh-cert-heading">证书文件</h3>
-            <p className="form-help">将下载的文件保存为 <code>~/.ssh/gsm_member-cert.pub</code>，并确保它与私钥 <code>~/.ssh/gsm_member</code> 同目录。</p>
+            <p className="form-help">将下载的文件保存为 <code>{certificatePath}</code>，上面的命令会同时加载该证书和私钥 <code>~/.ssh/gsm_member</code>。不同容器的证书分开保存，可以复用同一把本地密钥。</p>
             <div className="container-copy-value">
               <code>{result.certificate}</code>
               <button className="secondary-button" type="button" onClick={() => void copyValue("证书", result.certificate)}>

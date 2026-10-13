@@ -4,6 +4,7 @@ import { Play, Square, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { authenticatedFetch } from "../lib/authenticatedFetch";
+import { ownsContainer } from "../lib/containerOwnership";
 import { ContainerDetailsDialog } from "./ContainerDetailsDialog";
 import { AccessibleDialog } from "./AccessibleDialog";
 import { ContainerSSHAccess } from "./ContainerSSHAccess";
@@ -32,7 +33,7 @@ export function ContainerOperationsTable({ containers, actor, canOperate = true,
   const [initialTab, setInitialTab] = useState<"overview" | "terminal" | "connections">("overview");
   const [credentialRevision, setCredentialRevision] = useState(0);
   function owns(container: ContainerSummary) {
-    return !!actor && (container.ownerMemberId ? container.ownerMemberId === actor.memberId : container.user === actor.userId);
+    return !!actor && ownsContainer(container, actor);
   }
   function open(containerId: string, tab: typeof initialTab) {
     setInitialTab(tab); setManagedContainerId(containerId);

@@ -28,7 +28,7 @@ from gsm_api.store import SQLITE_SCHEMA_VERSION
 
 
 BACKUP_FORMAT_VERSION = 2
-APPLICATION_VERSION = "0.3.0-rc.5"
+APPLICATION_VERSION = "0.3.0-rc.6"
 DATA_MEMBERS = (
     "control.sqlite.fernet",
     "config-public.json",

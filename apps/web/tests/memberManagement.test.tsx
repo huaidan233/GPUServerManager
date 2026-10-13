@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, test, vi } from "vitest";
 
 import { MemberManagementPanel } from "../components/MemberManagementPanel";
+import { mockDashboardData } from "../lib/mockData";
 
 
 const master = {
@@ -33,6 +34,43 @@ function openMemberAction(memberName: string, actionName: string) {
   fireEvent.click(screen.getByRole("button", { name: `${memberName} 的更多操作` }));
   fireEvent.click(screen.getByRole("button", { name: `${actionName} ${memberName}` }));
 }
+
+test("member container management is scoped, keeps the admin identity and refreshes after a start", async () => {
+  const aliceContainer = { ...mockDashboardData.containers[0], status: "stopped", statusText: "已停止" };
+  const fetched = vi.fn(async (url: RequestInfo | URL) => url.toString().endsWith("/start")
+    ? Response.json({ container: { id: aliceContainer.id, status: "running" } })
+    : Response.json([master, { ...master, id: "member-bob", username: "bob", display_name: "Bob Li" }]));
+  vi.stubGlobal("fetch", fetched);
+  const refreshed = vi.fn();
+  render(<MemberManagementPanel containers={[aliceContainer, mockDashboardData.containers[1]]} actor={{ userId: "admin", memberId: "member-admin", role: "admin", status: "active" }} onContainersUpdated={refreshed} />);
+  const trigger = await screen.findByRole("button", { name: "管理 Alice Zhang 的容器" });
+  fireEvent.click(trigger);
+  const dialog = within(screen.getByRole("dialog", { name: "Alice Zhang 的容器" }));
+  expect(dialog.getByRole("button", { name: `管理 ${aliceContainer.name}` })).toBeVisible();
+  expect(dialog.queryByRole("button", { name: `管理 ${mockDashboardData.containers[1].name}` })).not.toBeInTheDocument();
+  expect(dialog.queryByText("SSH 密码")).not.toBeInTheDocument();
+  expect(fetched.mock.calls.some(([url]) => url.toString().endsWith("ssh-password"))).toBe(false);
+  fireEvent.click(dialog.getByRole("button", { name: `启动 ${aliceContainer.name}` }));
+  expect(await dialog.findByRole("button", { name: `停止 ${aliceContainer.name}` })).toBeEnabled();
+  expect(refreshed).toHaveBeenCalledTimes(1);
+  expect(fetched).toHaveBeenCalledWith(`/api/gsm/containers/${aliceContainer.id}/start`, { method: "POST" });
+  fireEvent.click(dialog.getByRole("button", { name: "关闭Alice Zhang 的容器" }));
+  expect(trigger).toHaveFocus();
+});
+
+test("member details open an empty container view and a different member never inherits its rows", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => Response.json([master, { ...master, id: "member-empty", username: "empty", display_name: "Empty Member" }])));
+  render(<MemberManagementPanel containers={mockDashboardData.containers} actor={{ userId: "admin", role: "admin" }} />);
+  fireEvent.click(await screen.findByRole("button", { name: "管理 Alice Zhang 的容器" }));
+  expect(screen.getByRole("button", { name: `管理 ${mockDashboardData.containers[0].name}` })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "关闭Alice Zhang 的容器" }));
+  fireEvent.click(screen.getByRole("button", { name: "打开 Empty Member" }));
+  fireEvent.click(screen.getByRole("button", { name: "管理容器" }));
+  expect(screen.queryByRole("dialog", { name: "Empty Member 详情" })).not.toBeInTheDocument();
+  const dialog = within(screen.getByRole("dialog", { name: "Empty Member 的容器" }));
+  expect(dialog.getByText("该成员暂无容器。")).toBeVisible();
+  expect(dialog.queryByRole("button", { name: `管理 ${mockDashboardData.containers[0].name}` })).not.toBeInTheDocument();
+});
 
 
 test("renders dense filters, degree badges and graduation emphasis", async () => {

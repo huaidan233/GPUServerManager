@@ -73,7 +73,7 @@ async def _lifespan(application: FastAPI):
 
 app = FastAPI(
     title="GPU Server Manager Server Agent",
-    version="0.3.0-rc.5",
+    version="0.3.0-rc.6",
     lifespan=_lifespan,
 )
 

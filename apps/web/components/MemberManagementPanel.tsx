@@ -11,13 +11,15 @@ import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState
 import Papa from "papaparse";
 
 import { AccessibleDialog } from "./AccessibleDialog";
+import { ContainerOperationsTable } from "./ContainerOperationsTable";
 import {
   MemberDetailDrawer,
   type MemberActionKind,
   type MemberDetail,
 } from "./MemberDetailDrawer";
 import { authenticatedFetch } from "../lib/authenticatedFetch";
-import type { ContainerSummary } from "../lib/mockData";
+import type { ActorSummary, ContainerSummary } from "../lib/mockData";
+import { ownsContainer } from "../lib/containerOwnership";
 
 type ProgramLevel = "master" | "doctor";
 
@@ -70,12 +72,14 @@ type CsvInvitation = {
 type MemberManagementPanelProps = {
   containers: ContainerSummary[];
   currentMemberId?: string;
+  actor?: ActorSummary;
+  onContainersUpdated?: () => void;
 };
 
 const TRANSFER_CONFIRMATION = "TRANSFER DATA OWNERSHIP";
 const PROMOTION_CONFIRMATION = "PROMOTE TO DOCTOR";
 
-export function MemberManagementPanel({ containers, currentMemberId }: MemberManagementPanelProps) {
+export function MemberManagementPanel({ containers, currentMemberId, actor, onContainersUpdated }: MemberManagementPanelProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -84,6 +88,7 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
   const [oneTimeResult, setOneTimeResult] = useState<OneTimeResult | null>(null);
   const [csvPreview, setCsvPreview] = useState<CsvInvitation[]>([]);
   const [detailMemberId, setDetailMemberId] = useState<string | null>(null);
+  const [containerMemberId, setContainerMemberId] = useState<string | null>(null);
   const detailTriggerRef = useRef<HTMLButtonElement>(null);
 
   const [search, setSearch] = useState("");
@@ -149,6 +154,11 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
   const detailMember = detailMemberId
     ? members.find((member) => member.id === detailMemberId) ?? null
     : null;
+  const containerMember = members.find(member => member.id === containerMemberId);
+  const memberContainers = useMemo(() => containerMember
+    ? containers.filter(container => ownsContainer(container, { memberId: containerMember.id, userId: containerMember.username }))
+      .sort((first, second) => Number(second.status === "running") - Number(first.status === "running"))
+    : [], [containers, containerMember]);
 
   const enrollmentYears = useMemo(() => Array.from(new Set(
     members
@@ -170,7 +180,8 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
   }, [members, search, statusFilter, roleFilter, levelFilter, yearFilter, supervisorFilter]);
 
   function ownedContainers(memberId: string): ContainerSummary[] {
-    return containers.filter((container) => container.ownerMemberId === memberId);
+    const member = members.find(candidate => candidate.id === memberId);
+    return member ? containers.filter(container => ownsContainer(container, { memberId, userId: member.username })) : [];
   }
 
   function openDialog(kind: DialogKind, member?: Member) {
@@ -490,7 +501,7 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
           <thead>
             <tr>
               <th>成员</th><th>培养层次</th><th>角色</th><th>入学</th><th>预期毕业</th>
-              <th>剩余时间</th><th>状态</th><th>微信</th><th>Docker / SSH</th><th>操作</th>
+              <th>剩余时间</th><th>状态</th><th>微信</th><th>容器</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
@@ -511,7 +522,7 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
                   <td data-label="剩余时间">{program ? remainingLabel(program.expected_graduation_date) : "-"}</td>
                   <td data-label="状态"><span className={`status-pill ${member.status}`}>{statusLabel(member.status)}</span></td>
                   <td data-label="微信">{member.wechat_binding ? "已绑定" : "未绑定"}</td>
-                  <td data-label="Docker / SSH"><strong>{inventory.length}</strong><span className="member-username">无持久密钥</span></td>
+                  <td data-label="容器"><button className="text-button" type="button" aria-label={`管理 ${member.display_name} 的容器`} onClick={(event) => { detailTriggerRef.current = event.currentTarget; setContainerMemberId(member.id); }}>{inventory.length} 个容器</button></td>
                   <td data-label="操作">
                     <button
                       className="icon-button member-open-button"
@@ -541,7 +552,21 @@ export function MemberManagementPanel({ containers, currentMemberId }: MemberMan
           triggerRef={detailTriggerRef}
           onClose={() => setDetailMemberId(null)}
           onAction={(kind) => openMemberAction(kind, detailMember)}
+          onManageContainers={() => { setContainerMemberId(detailMember.id); setDetailMemberId(null); }}
         />
+      )}
+
+      {containerMember && (
+        <AccessibleDialog title={`${containerMember.display_name} 的容器`} className="member-containers-dialog" triggerRef={detailTriggerRef} onClose={() => setContainerMemberId(null)}>
+          <div className="container-detail-toolbar">
+            <p>@{containerMember.username} · 共 {memberContainers.length} 个容器</p>
+            <button className="secondary-button" type="button" onClick={onContainersUpdated}>刷新容器</button>
+          </div>
+          <ContainerOperationsTable key={containerMember.id} containers={memberContainers} actor={actor}
+            canOperate={actor?.role === "admin" && (!actor.status || actor.status === "active")}
+            onOperationComplete={onContainersUpdated} />
+          {memberContainers.length === 0 && <p className="empty-state">该成员暂无容器。</p>}
+        </AccessibleDialog>
       )}
 
       {dialog?.kind === "invite" && (
@@ -791,7 +816,7 @@ function reasonDialogConfig(kind: ReasonDialogKind, member: Member, requireSelfC
     "revoke-sessions": { title: "撤销会话", reasonLabel: "撤销原因", submitLabel: "撤销全部会话", consequence: "该成员需要重新登录。", danger: true },
     "wechat-pairing-code": { title: "生成微信配对码", reasonLabel: "生成原因", submitLabel: "生成配对码", consequence: "旧的未使用配对码将失效。", danger: false },
     "wechat-unbind": { title: "解绑微信", reasonLabel: "解绑原因", submitLabel: "确认解绑", consequence: "当前微信路由将立即失去操作权限。", danger: true },
-    "disable": { title: "停用成员", reasonLabel: "停用原因", submitLabel: "确认停用", consequence: "Web、微信和新 SSH 证书将失效，容器不会停止。", danger: true, exactConfirmation: requireSelfConfirmation ? "DISABLE MY ACCOUNT" : undefined },
+    "disable": { title: "停用成员", reasonLabel: "停用原因", submitLabel: "确认停用", consequence: "Web 与微信访问将停用，并禁止签发新 SSH 证书；容器不会停止，已有 SSH 密码和证书仍可直连。", danger: true, exactConfirmation: requireSelfConfirmation ? "DISABLE MY ACCOUNT" : undefined },
     "reactivate": { title: "重新启用成员", reasonLabel: "启用原因", submitLabel: "确认启用", consequence: "成员将恢复在组身份，但旧会话不会恢复。", danger: false },
     "archive": { title: "归档成员", reasonLabel: "归档原因", submitLabel: "确认归档", consequence: "归档后成员历史不可再修改。", danger: true, exactConfirmation: `ARCHIVE ${member.username}` },
   };

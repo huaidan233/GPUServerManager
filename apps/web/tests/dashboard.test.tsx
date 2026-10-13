@@ -16,6 +16,12 @@ import {
   mockServers,
 } from "../lib/mockData";
 
+const personalContainerData = {
+  ...mockDashboardData,
+  actor: { ...mockDashboardData.actor, memberId: "member-admin" },
+  containers: mockDashboardData.containers.map(container => ({ ...container, ownerMemberId: "member-admin", user: "admin", sshCommand: "" })),
+};
+
 const navigation = vi.hoisted(() => ({
   replace: vi.fn((href: string) => window.history.replaceState(null, "", href)),
   refresh: vi.fn(),
@@ -673,7 +679,7 @@ test("requests stop confirmation from the containers table and confirms it", asy
     } as Response);
   vi.stubGlobal("fetch", fetchMock);
 
-  render(<Dashboard data={mockDashboardData} initialWorkspace="resources" />);
+  render(<Dashboard data={personalContainerData} initialWorkspace="resources" />);
 
   fireEvent.click(screen.getByRole("button", { name: "停止 llama-debug" }));
 
@@ -708,7 +714,7 @@ test("starts a stopped container from the containers table", async () => {
   });
   vi.stubGlobal("fetch", fetchMock);
 
-  render(<Dashboard data={mockDashboardData} initialWorkspace="resources" />);
+  render(<Dashboard data={personalContainerData} initialWorkspace="resources" />);
 
   fireEvent.click(screen.getByRole("button", { name: "启动 coding-cpu" }));
 
@@ -744,7 +750,7 @@ test("requests delete confirmation and removes the container after confirming", 
     } as Response);
   vi.stubGlobal("fetch", fetchMock);
 
-  render(<Dashboard data={mockDashboardData} initialWorkspace="resources" />);
+  render(<Dashboard data={personalContainerData} initialWorkspace="resources" />);
 
   fireEvent.click(screen.getByRole("button", { name: "删除 diffusion-train" }));
   expect(await screen.findByText("删除 container diffusion-train")).toBeInTheDocument();
@@ -830,7 +836,8 @@ test("viewer role sees identity and cannot mutate containers or images", () => {
     <Dashboard initialWorkspace="resources"
       data={{
         ...mockDashboardData,
-        actor: { userId: "viewer", role: "viewer" },
+        actor: { userId: "viewer", memberId: "member-admin", role: "viewer" },
+        containers: personalContainerData.containers,
       }}
     />,
   );

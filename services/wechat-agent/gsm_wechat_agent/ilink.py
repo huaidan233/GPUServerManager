@@ -23,7 +23,7 @@ import httpx
 
 DEFAULT_API_URL = "https://ilinkai.weixin.qq.com"
 PROTOCOL_VERSION = "2.4.9"
-BASE_INFO = {"channel_version": PROTOCOL_VERSION, "bot_agent": "GPUServerManager/0.3.0-rc.5"}
+BASE_INFO = {"channel_version": PROTOCOL_VERSION, "bot_agent": "GPUServerManager/0.3.0-rc.6"}
 
 
 class IlinkError(RuntimeError):

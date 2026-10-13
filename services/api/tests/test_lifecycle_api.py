@@ -235,7 +235,8 @@ def test_new_managed_container_sends_only_ca_public_key_and_owner_principal(
     assert agent.payload["ssh_owner_principal"].startswith("gsm:dev:alice:")
 
 
-def test_ssh_certificate_endpoint_is_owner_bound_and_audited():
+@pytest.mark.parametrize("permanent", [True, False])
+def test_ssh_certificate_endpoint_is_owner_bound_and_audited(permanent):
     now = datetime.now(timezone.utc)
 
     class FakeIssuer:
@@ -247,7 +248,7 @@ def test_ssh_certificate_endpoint_is_owner_bound_and_audited():
         def inspect(self, _certificate):
             return SimpleNamespace(
                 valid_after=now - timedelta(minutes=5),
-                valid_before=now + timedelta(minutes=15),
+                valid_before=None if permanent else now + timedelta(minutes=15),
             )
 
     seed_container(container_id="ssh-c1", owner_member_id="dev:alice")
@@ -282,6 +283,7 @@ def test_ssh_certificate_endpoint_is_owner_bound_and_audited():
 
     assert denied.status_code == 403
     assert issued.status_code == 200
+    assert issued.json()["valid_before"] == (None if permanent else (now + timedelta(minutes=15)).isoformat())
     audit = client.get("/api/audit-logs", headers=auth("admin-token")).json()
     assert audit[-1]["action_type"] == "issue_ssh_certificate"
 

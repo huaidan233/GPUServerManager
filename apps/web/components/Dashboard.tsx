@@ -33,6 +33,7 @@ import { TeacherUsagePanel } from "./TeacherUsagePanel";
 import { WorkspaceNav } from "./WorkspaceNav";
 import type { TeacherStudent, WorkspaceOverview } from "../lib/api";
 import type { ActorRole, DashboardData } from "../lib/mockData";
+import { ownsContainer } from "../lib/containerOwnership";
 import {
   effectiveWorkspaceRole,
   resolveWorkspace,
@@ -78,9 +79,9 @@ export function Dashboard({
   const canPullImages = active && (
     data.actor.role === "power_user" || data.actor.role === "teacher" || data.actor.role === "admin"
   );
-  const containers = useMemo(() => [...data.containers].sort((first, second) =>
+  const containers = useMemo(() => data.containers.filter(container => ownsContainer(container, data.actor)).sort((first, second) =>
     Number(second.status === "running") - Number(first.status === "running"),
-  ), [data.containers]);
+  ), [data.containers, data.actor]);
   const runningCount = containers.filter((container) => container.status === "running").length;
   const showCreateDialog = createDialogOpen && canCreateContainers
     && workspace === "resources";
@@ -205,7 +206,7 @@ export function Dashboard({
             <dl className="overview-inventory">
               <div><dt>已配置服务器</dt><dd>{data.servers.length}<small> 台</small></dd></div>
               <div><dt>当前 GPU 观测</dt><dd>{data.gpus.length}<small> 张</small></dd></div>
-              <div><dt>{workspaceRole === "admin" ? "全组容器" : "我的容器"}</dt><dd>{data.containers.length}<small> 个</small></dd></div>
+              <div><dt>{workspaceRole === "admin" ? "全组容器" : "我的容器"}</dt><dd>{workspaceRole === "admin" ? data.containers.length : containers.length}<small> 个</small></dd></div>
             </dl>
           </section>
           <RoleOverview
@@ -239,8 +240,9 @@ export function Dashboard({
         <section className="panel resource-container-panel" aria-label="容器管理">
           <div className="panel-heading">
             <div>
-              <h2>容器列表</h2>
+              <h2>我的容器</h2>
               <p>{runningCount} 个运行中 · 共 {containers.length} 个 · 运行中的容器优先显示。</p>
+              {workspaceRole === "admin" && <button className="text-button" type="button" onClick={() => navigateWorkspace("members")}>前往成员列表管理其他成员的容器 →</button>}
             </div>
             <button
               ref={createTriggerRef}
@@ -268,7 +270,7 @@ export function Dashboard({
             onOperationComplete={refreshResources}
             onReuse={recipe => { setReuseRecipe(recipe); setCreateDialogOpen(true); }}
           />
-          {containers.length === 0 && <div className="resource-container-empty"><Boxes size={28} aria-hidden="true" /><strong>暂无可见容器</strong><p>{canCreateContainers ? "点击右上角“创建容器”，选择镜像和所需资源。" : "当前没有可查看的容器。"}</p></div>}
+          {containers.length === 0 && <div className="resource-container-empty"><Boxes size={28} aria-hidden="true" /><strong>你还没有容器</strong><p>{canCreateContainers ? "点击右上角“创建容器”，选择镜像和所需资源。" : "当前账户没有自己的容器。"}</p></div>}
         </section>
 
         </>}
@@ -311,6 +313,8 @@ export function Dashboard({
           <MemberManagementPanel
             containers={data.containers}
             currentMemberId={data.actor.memberId}
+            actor={data.actor}
+            onContainersUpdated={refreshResources}
           />
         )}
         </div>

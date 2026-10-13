@@ -283,7 +283,7 @@ def _bounded_environment_integer(name: str, default: int, *, minimum: int) -> in
     return value
 
 
-app = FastAPI(title="GPU Server Manager API", version="0.3.0-rc.5", lifespan=_lifespan)
+app = FastAPI(title="GPU Server Manager API", version="0.3.0-rc.6", lifespan=_lifespan)
 app.add_middleware(UpdateMaintenanceMiddleware)
 
 
@@ -1030,7 +1030,7 @@ def issue_ssh_certificate(
         "certificate": certificate,
         "principal": expected_principal,
         "valid_after": details.valid_after.isoformat(),
-        "valid_before": details.valid_before.isoformat(),
+        "valid_before": details.valid_before.isoformat() if details.valid_before is not None else None,
         "ssh_host": container.get("ssh_host"),
         "ssh_port": container.get("ssh_port"),
         "ssh_user": container.get("ssh_user"),

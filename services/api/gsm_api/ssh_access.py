@@ -32,7 +32,7 @@ class SSHCertificateDetails:
     identity: str
     principals: list[str]
     valid_after: datetime
-    valid_before: datetime
+    valid_before: datetime | None
 
 
 def validate_public_key(public_key: str) -> str:
@@ -128,7 +128,7 @@ class SSHCertificateIssuer:
         container_id: str,
         public_key: str,
         now: datetime | None = None,
-        validity: timedelta = timedelta(minutes=15),
+        validity: timedelta | None = None,
     ) -> str:
         normalized_key = validate_public_key(public_key)
         principal = validate_principal(f"gsm:{member_id}:{container_id}")
@@ -136,11 +136,11 @@ class SSHCertificateIssuer:
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=timezone.utc)
         timestamp = timestamp.astimezone(timezone.utc).replace(microsecond=0)
-        if validity <= timedelta(0) or validity > timedelta(minutes=15):
-            raise ValueError("certificate validity cannot exceed 15 minutes")
+        if validity is not None and validity <= timedelta(0):
+            raise ValueError("certificate validity must be positive")
         _check_ca_private_key_path(self.ca_private_key_path)
         valid_after = timestamp - timedelta(minutes=5)
-        valid_before = timestamp + validity
+        valid_before = _openssh_time(timestamp + validity) if validity is not None else "forever"
         with tempfile.TemporaryDirectory(prefix="gsm-ssh-") as directory:
             temp_dir = Path(directory)
             try:
@@ -164,7 +164,7 @@ class SSHCertificateIssuer:
                     "-n",
                     principal,
                     "-V",
-                    f"{_openssh_time(valid_after)}:{_openssh_time(valid_before)}",
+                    f"{_openssh_time(valid_after)}:{valid_before}",
                     str(public_path),
                 ],
                 check=False,
@@ -221,19 +221,27 @@ def _parse_certificate_details(output: str) -> SSHCertificateDetails:
     identity = ""
     principals: list[str] = []
     valid_after = valid_before = None
+    validity_parsed = False
     for line in output.splitlines():
         stripped = line.strip()
         if stripped.startswith('Key ID: "'):
             identity = stripped.split('"', 2)[1]
         elif stripped.startswith("Valid:"):
-            match = re.search(r"from ([^ ]+) to ([^ ]+)", stripped)
+            match = re.fullmatch(r"Valid:\s+from (\S+) to (\S+)", stripped)
             if match:
                 valid_after = _parse_openssh_time(match.group(1))
                 valid_before = _parse_openssh_time(match.group(2))
+                validity_parsed = True
+            else:
+                # OpenSSH prints an unbounded end time as "Valid: after ...".
+                match = re.fullmatch(r"Valid:\s+after (\S+)", stripped)
+                if match:
+                    valid_after = _parse_openssh_time(match.group(1))
+                    validity_parsed = True
         elif principals is not None and stripped and not stripped.endswith(":"):
             if re.fullmatch(r"gsm:[A-Za-z0-9._:@+-]+", stripped):
                 principals.append(stripped)
-    if not identity or not principals or valid_after is None or valid_before is None:
+    if not identity or not principals or valid_after is None or not validity_parsed:
         raise ValueError("certificate details are incomplete")
     return SSHCertificateDetails(identity, principals, valid_after, valid_before)
 
