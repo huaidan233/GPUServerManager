@@ -24,7 +24,7 @@ def repository(tmp_path):
     git(root, "init", "-b", "main")
     git(root, "config", "core.autocrlf", "true")
     (root / "package.json").write_text(json.dumps({"version": "0.3.0-rc.1"}))
-    (root / "README.md").write_text("Public source\n")
+    (root / "README.md").write_bytes(b"Public source\n")
     (root / ".gitignore").write_text("var/\n")
     (root / "var").mkdir()
     (root / "var" / "private.txt").write_text("private runtime data")
@@ -81,9 +81,13 @@ def test_existing_checksum_file_is_never_overwritten(tmp_path):
 
 def test_release_uses_identical_committed_bytes_for_lf_and_crlf_worktrees(tmp_path):
     root = repository(tmp_path)
+    assert (root / "README.md").read_bytes() == b"Public source\n"
     first = build(root, tmp_path / "lf")
     git(root, "config", "core.autocrlf", "true")
-    (root / "README.md").write_bytes(b"Public source\r\n")
+    # Let Git update its index stat cache while producing a real CRLF checkout.
+    (root / "README.md").unlink()
+    git(root, "checkout", "--", "README.md")
+    assert (root / "README.md").read_bytes() == b"Public source\r\n"
     assert not git(root, "status", "--porcelain").stdout.strip()
     second = build(root, tmp_path / "crlf")
     assert first.read_bytes() == second.read_bytes()
