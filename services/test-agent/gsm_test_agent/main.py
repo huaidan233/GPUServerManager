@@ -12,7 +12,7 @@ from gsm_test_agent.checks import health_check, run_smoke_checks
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="GPU Server Manager Test Agent", version="0.3.0-rc.4")
+    app = FastAPI(title="GPU Server Manager Test Agent", version="0.3.0-rc.5")
 
     @app.get("/test-agent/health")
     def health():

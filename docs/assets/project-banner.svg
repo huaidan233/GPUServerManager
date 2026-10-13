@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
+  <title id="title">GPU Server Manager</title>
+  <desc id="desc">A research team's compute workspace. GPU resources connect to containers, notebooks and private data.</desc>
+  <defs>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 28" fill="none" stroke="#ffffff" stroke-opacity=".045"/></pattern>
+    <linearGradient id="base" x2="1" y2="1"><stop stop-color="#15283d"/><stop offset="1" stop-color="#203d51"/></linearGradient>
+    <linearGradient id="chip" x2="1" y2="1"><stop stop-color="#27bbc3"/><stop offset="1" stop-color="#81dad0"/></linearGradient>
+  </defs>
+  <rect width="1200" height="340" rx="20" fill="url(#base)"/>
+  <rect width="1200" height="340" rx="20" fill="url(#grid)"/>
+  <g font-family="ui-monospace, Consolas, monospace">
+    <path d="M52 54h22m-11-11v22" stroke="#69d5cf" stroke-width="2"/>
+    <text x="88" y="60" fill="#b1c8d6" font-size="13" letter-spacing="3">RESEARCH COMPUTE, TOGETHER</text>
+    <text x="54" y="147" fill="#f1f6f5" font-family="Segoe UI, Arial, sans-serif" font-size="49" font-weight="700" letter-spacing="-1.5">GPU Server Manager</text>
+    <text x="56" y="192" fill="#b1c8d6" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="20">算力有序分配 · 环境随时就绪 · 数据各有所属</text>
+    <path d="M56 234h44" stroke="#69d5cf" stroke-width="3"/>
+    <text x="56" y="279" fill="#8faabb" font-size="13" letter-spacing="1.8">SELF-HOSTED / GPU / DOCKER / NOTEBOOKS</text>
+  </g>
+  <g stroke="#4e8296" stroke-width="2" fill="none">
+    <path d="M830 170h47v-76h50M877 170h50M877 170v76h50"/>
+    <circle cx="877" cy="170" r="4" fill="#69d5cf" stroke="none"/>
+  </g>
+  <g transform="translate(687 103)">
+    <g stroke="#6b9fae" stroke-width="3">
+      <path d="M20 0v-15m25 15v-15m25 15v-15m25 15v-15m25 15v-15M20 134v15m25-15v15m25-15v15m25-15v15m25-15v15M0 20h-15m15 25h-15m15 25h-15m15 25h-15m15 25h-15M143 20h15m-15 25h15m-15 25h15m-15 25h15m-15 25h15"/>
+    </g>
+    <rect width="143" height="134" rx="14" fill="#254858" stroke="#69d5cf" stroke-width="2"/>
+    <rect x="14" y="14" width="115" height="106" rx="7" fill="url(#chip)"/>
+    <g fill="#1d4753" opacity=".24"><rect x="26" y="27" width="23" height="22" rx="3"/><rect x="60" y="27" width="23" height="22" rx="3"/><rect x="94" y="27" width="23" height="22" rx="3"/></g>
+    <text x="71.5" y="91" fill="#14333f" font-family="ui-monospace, Consolas, monospace" font-size="32" font-weight="700" text-anchor="middle">GPU</text>
+  </g>
+  <g font-family="ui-monospace, Consolas, monospace" font-size="14">
+    <rect x="927" y="68" width="216" height="52" rx="9" fill="#203a4e" stroke="#4e8296"/>
+    <rect x="944" y="85" width="17" height="17" rx="3" fill="none" stroke="#69d5cf" stroke-width="2"/>
+    <text x="978" y="99" fill="#e0edee">CONTAINERS</text>
+    <rect x="927" y="144" width="216" height="52" rx="9" fill="#203a4e" stroke="#4e8296"/>
+    <path d="m945 162 6 7-6 7m12 0h8" fill="none" stroke="#ffbd86" stroke-width="2"/>
+    <text x="978" y="175" fill="#e0edee">NOTEBOOKS</text>
+    <rect x="927" y="220" width="216" height="52" rx="9" fill="#203a4e" stroke="#4e8296"/>
+    <path d="M944 237h7l3 3h10v14h-20z" fill="none" stroke="#94adf0" stroke-width="2"/>
+    <text x="978" y="251" fill="#e0edee">PRIVATE DATA</text>
+  </g>
+</svg>

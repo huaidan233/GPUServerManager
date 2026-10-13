@@ -7,7 +7,7 @@ from typing import TextIO
 from fastapi import FastAPI, HTTPException
 
 
-app = FastAPI(title="GPU Server Manager Codex MCP Agent", version="0.3.0-rc.4")
+app = FastAPI(title="GPU Server Manager Codex MCP Agent", version="0.3.0-rc.5")
 
 
 @app.get("/codex-mcp/health")

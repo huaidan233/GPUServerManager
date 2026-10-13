@@ -1,6 +1,6 @@
 # GPU Server Manager 0.3.0 预发布：部署与功能手册
 
-适用版本：`0.3.0-rc.4`（Python 包版本 `0.3.0rc4`）。本文面向部署管理员；日常操作见[用户手册](user-guide.md)。这是预发布候选版本，建议先在受控环境验收，再交付团队使用。
+适用版本：`0.3.0-rc.5`（Python 包版本 `0.3.0rc5`）。本文面向部署管理员；日常操作见[用户手册](user-guide.md)。这是预发布候选版本，建议先在受控环境验收，再交付团队使用。
 
 示例中的 `gsm.example.edu`、`apps.example.edu`、`compute.example.edu` 和尖括号内容均为占位值，必须替换为自己的配置。文档不包含可直接登录的账号或密钥。
 
@@ -379,7 +379,7 @@ sudo bash scripts/deploy/restore_sqlite.sh <backup-key> <restore-ticket>
 
 ### 在线升级与自动回退
 
-`0.3.0-rc.4` 支持管理员在线安装更新。GitHub Release 提供发布资产，真正执行升级的是主机上的独立 root 服务。它在 API/Web 重启期间继续运行，网页可以恢复后继续查询同一操作。不会在无人确认时自动安装新版本。
+`0.3.0-rc.5` 支持管理员在线安装更新。GitHub Release 提供发布资产，真正执行升级的是主机上的独立 root 服务。它在 API/Web 重启期间继续运行，网页可以恢复后继续查询同一操作。不会在无人确认时自动安装新版本。
 
 新安装器会注册升级服务。已有部署先保存原配置，把对基础 Compose 的定制拆成持久扩展文件，再执行：
 
@@ -400,14 +400,14 @@ sudo python3 scripts/deploy/upgrade_manager.py install \
 
 管理服务启动先等待升级器完成启动恢复，再通过 `start-control-plane` 在部署锁内检查状态和启动服务；升级、恢复与启动共用这把锁。未连接升级器、仍有维护标记或状态为 `recovery_required` 时拒绝启动。不要删除 drop-in 或手工删除维护标记绕过这个检查。
 
-常规管理员只需使用网页。启用远程更新时，将下例的占位值替换为**真实、已经发布所需资产的公开 GitHub 仓库**，同步修改 `gsm.env` 和 `api.env`：
+常规管理员只需使用网页。启用官方预发布更新时，同步修改 `gsm.env` 和 `api.env`：
 
 ```dotenv
-GSM_UPDATE_REPOSITORY=OWNER/REPOSITORY
-GSM_UPDATE_CHANNEL=stable
+GSM_UPDATE_REPOSITORY=huaidan233/GPUServerManager
+GSM_UPDATE_CHANNEL=prerelease
 ```
 
-然后重新运行上面的 `install` 命令刷新 root 可信仓库配置，在维护窗口通过管理服务重建 API，使检查配置生效。`OWNER/REPOSITORY` 不是可用仓库；默认空值禁用远程检查，源码中的更新功能也不会自动替你创建 GitHub 项目或 Release。候选版使用 `prerelease`；稳定通道不从远程获取候选版。版本检查有 5 分钟缓存，任务状态每 5 秒刷新，网络失败会明确显示失败。
+然后重新运行上面的 `install` 命令刷新 root 可信仓库配置，在维护窗口通过管理服务重建 API，使检查配置生效。默认仓库空值禁用远程检查。需要自己的发布源时，替换为包含完整发布附件的公开仓库。候选版使用 `prerelease`；只接收正式版时使用 `stable`，尚无正式版时该通道显示暂无版本。版本检查有 5 分钟缓存，任务状态每 5 秒刷新，网络失败会明确显示失败。
 
 在「系统 → 版本与更新」依次检查版本、准备安装包、确认安装。准备只下载并校验发布包，准备记录有效期为 **1 小时**。准备/安装/手动回退均要求动态验证码，安装还需输入 `UPGRADE <目标版本>`。每组验证码只能用于一次升级操作，准备后需等下一组验证码再安装。
 
@@ -431,14 +431,14 @@ sudo journalctl -u gsm-upgrade-manager@<compose-project>.service -n 100 --no-pag
 
 ### 未公开仓库时的本地发布包
 
-每个 Release 必须有 `gpu-server-manager-0.3.0-rc.4-source.zip`（版本随发布变化）、`release-manifest.json` 和 `SHA256SUMS`。只有 GitHub 自动生成的 Source code 压缩包不能自动安装。清单包含大小、SHA-256、安装模式和更新协议；校验和保证一致性，发布来源仍依赖可信仓库及其发布权限。
+每个 Release 必须有 `gpu-server-manager-0.3.0-rc.5-source.zip`（版本随发布变化）、`release-manifest.json` 和 `SHA256SUMS`。只有 GitHub 自动生成的 Source code 压缩包不能自动安装。清单包含大小、SHA-256、安装模式和更新协议；校验和保证一致性，发布来源仍依赖可信仓库及其发布权限。
 
 本地包由 root 显式暂存，之后沿用相同升级事务，不必先将项目发布到 GitHub：
 
 ```bash
 sudo python3 /usr/local/lib/gpu-server-manager/upgrade_manager.py \
   --config /opt/gpu-server-manager/updater.json stage-local \
-  --archive /root/release/gpu-server-manager-0.3.0-rc.4-source.zip \
+  --archive /root/release/gpu-server-manager-0.3.0-rc.5-source.zip \
   --manifest /root/release/release-manifest.json
 sudo python3 /usr/local/lib/gpu-server-manager/upgrade_manager.py \
   --config /opt/gpu-server-manager/updater.json apply --prepared-id <上一步返回的ID>

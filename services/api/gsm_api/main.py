@@ -283,7 +283,7 @@ def _bounded_environment_integer(name: str, default: int, *, minimum: int) -> in
     return value
 
 
-app = FastAPI(title="GPU Server Manager API", version="0.3.0-rc.4", lifespan=_lifespan)
+app = FastAPI(title="GPU Server Manager API", version="0.3.0-rc.5", lifespan=_lifespan)
 app.add_middleware(UpdateMaintenanceMiddleware)
 
 

@@ -77,7 +77,7 @@ async def _lifespan(application: FastAPI):
 
 app = FastAPI(
     title="GPU Server Manager WeChat Agent",
-    version="0.3.0-rc.4",
+    version="0.3.0-rc.5",
     lifespan=_lifespan,
 )
 _NONCE_TTL_SECONDS = 300
