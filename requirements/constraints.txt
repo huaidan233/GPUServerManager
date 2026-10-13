@@ -22,7 +22,7 @@ iniconfig==1.1.1
 packaging==26.0
 pillow==12.3.0
 pluggy==1.6.0
-pycparser==2.21
+pycparser==3.11
 pydantic==2.12.4
 pydantic-core==2.41.5
 pyotp==2.10.0
