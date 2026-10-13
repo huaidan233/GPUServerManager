@@ -24,7 +24,7 @@ dependencies = [
   "argon2-cffi>=23.1.0",
   "pyotp>=2.9.0",
   "tzdata>=2026.3",
-  "pywin32>=306; sys_platform == \"win32\"",
+  "pywin32>=312; sys_platform == \"win32\"",
   "python-dotenv>=1.2.3"
 ]
 
