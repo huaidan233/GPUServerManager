@@ -20,7 +20,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.10.2",
     "@types/papaparse": "^5.5.2",
