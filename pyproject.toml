@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpu-server-manager"
+version = "0.3.0rc4"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "fastapi>=0.141.1",
+  "uvicorn>=0.30.0",
+  "pydantic>=2.7.0",
+  "sqlalchemy>=2.0.0",
+  "httpx>=0.27.0",
+  "qrcode>=8.2",
+  "websockets>=17.1",
+  "docker>=7.1.0",
+  "cryptography>=50.0.1",
+  "pypdf>=6.19.0",
+  "Pillow>=11.0.0",
+  "python-multipart>=0.0.32",
+  "argon2-cffi>=23.1.0",
+  "pyotp>=2.9.0",
+  "tzdata>=2026.3",
+  "pywin32>=306; sys_platform == \"win32\"",
+  "python-dotenv>=1.2.3"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.4.0",
+]
+
+[project.scripts]
+gsm-backup = "gsm_api.backup_cli:main"
+gsm-update = "gsm_api.update_cli:main"
+gsm-print-agent-admin = "gsm_api.print_cli:main"
+gsm-print-agent = "gsm_print_agent.main:main"
+gsm-member-admin = "gsm_api.member_cli:main"
+gsm-wechat-ilink = "gsm_wechat_agent.ilink_cli:main"
+
+[tool.setuptools.packages.find]
+where = [
+  "services/api",
+  "services/server-agent",
+  "services/wechat-agent",
+  "services/codex-mcp",
+  "services/test-agent",
+  "services/print-agent",
+]
+include = [
+  "gsm_api*",
+  "gsm_server_agent*",
+  "gsm_wechat_agent*",
+  "gsm_codex_mcp*",
+  "gsm_test_agent*",
+  "gsm_print_agent*",
+]
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+pythonpath = [
+  ".",
+  "services/api",
+  "services/server-agent",
+  "services/wechat-agent",
+  "services/codex-mcp",
+  "services/test-agent",
+  "services/print-agent"
+]
+testpaths = ["tests", "services"]
+asyncio_default_fixture_loop_scope = "function"

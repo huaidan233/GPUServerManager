@@ -1,0 +1,19 @@
+{
+  "name": "gpu-server-manager",
+  "private": true,
+  "version": "0.3.0-rc.4",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "npm --workspace @gsm/web run dev",
+    "build": "npm --workspace @gsm/web run build",
+    "lint": "npm --workspace @gsm/web run lint",
+    "test:web": "npm --workspace @gsm/web test",
+    "test:py": "python -m pytest",
+    "test": "python -m pytest && npm --workspace @gsm/web test"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "npm@10.9.8"
+}

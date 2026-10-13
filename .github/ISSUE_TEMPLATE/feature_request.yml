@@ -1,0 +1,50 @@
+name: 功能建议
+description: 提议有明确用户场景的新能力或改进
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索现有 Issue 和 ROADMAP.md。
+          required: true
+        - label: 我理解路线图中的探索项不是交付承诺。
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 用户场景与问题
+      description: 谁在什么情况下遇到什么问题？请避免只描述实现方案。
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 期望结果
+      description: 可验证的成功标准是什么？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 可包含接口、交互或运维流程草图。
+
+  - type: textarea
+    id: security
+    attributes:
+      label: 安全、迁移与运维影响
+      description: 说明身份、权限、密钥、数据、兼容性、回滚和规模影响。
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案
+      description: 已尝试的现有能力或可接受的较小方案。

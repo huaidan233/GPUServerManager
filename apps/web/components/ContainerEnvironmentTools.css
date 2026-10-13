@@ -1,0 +1,22 @@
+.python-environment-panel { padding: 18px; margin: 16px 0; background: #f6f8fc; border: 1px solid #dce3ef; border-radius: 12px; }
+.python-environment-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.python-environment-heading strong { font-size: 14px; color: var(--text); }
+.python-environment-heading p { margin: 5px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.python-environment-panel label { display: block; margin-bottom: 7px; font-size: 12px; font-weight: 600; }
+.python-environment-panel select, .python-environment-panel input { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #c8d2e3; border-radius: 7px; background: white; color: var(--text); font: inherit; font-size: 13px; text-overflow: ellipsis; }
+.python-environment-panel select:focus-visible, .python-environment-panel input:focus-visible { outline: 3px solid #9aacdf; outline-offset: 2px; }
+.python-manual-path { margin-top: 14px; }
+.python-environment-facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.python-environment-facts b { color: var(--text); font-weight: 550; margin-left: 5px; }
+.python-check-action { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+.python-check-action > span { color: var(--muted); font-size: 12px; }
+.python-probe-result { margin-top: 14px; padding: 12px 14px; background: #eaf4ef; border-left: 3px solid #39806a; border-radius: 4px; color: #245a48; }
+.python-probe-warning { background: #fff5e4; border-left-color: #ad7624; color: #765116; }
+.python-probe-result strong, .application-progress strong { font-size: 13px; }
+.python-probe-result p, .application-progress p { margin: 5px 0; font-size: 12px; line-height: 1.7; }
+.python-probe-result code { font-size: 11px; overflow-wrap: anywhere; }
+.application-progress { display: flex; align-items: flex-start; gap: 12px; margin: 15px 0; padding: 13px 15px; background: #eef2fc; border: 1px solid #d8e1f7; border-radius: 8px; color: #2946a8; }
+.application-progress-dot { margin-top: 5px; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; background: currentColor; }
+.application-progress-ready { background: #eaf4ef; border-color: #d3e7dc; color: #245a48; }
+.application-progress-failed { background: #fff5e4; border-color: #efdfc4; color: #765116; }
+@media (max-width: 600px) { .python-environment-panel { padding: 13px; } .python-environment-heading { flex-wrap: wrap; gap: 10px; } .python-environment-heading .secondary-button { width: auto; } .python-environment-facts { gap: 8px 12px; } }

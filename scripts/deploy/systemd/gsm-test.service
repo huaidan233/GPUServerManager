@@ -1,0 +1,14 @@
+[Unit]
+Description=GPU Server Manager test deployment
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gpu-server-manager-test
+ExecStart=/usr/bin/docker compose -f /opt/gpu-server-manager-test/docker-compose.yml --env-file /etc/gpu-server-manager-test/gsm.env up -d
+ExecStop=/usr/bin/docker compose -f /opt/gpu-server-manager-test/docker-compose.yml --env-file /etc/gpu-server-manager-test/gsm.env down
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

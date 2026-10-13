@@ -1,0 +1,8 @@
+# Create this private directory on the verified data disk before enabling.
+# The server-agent checks its device against GSM_PERSONAL_DATA_ROOT.
+services:
+  server-agent:
+    environment:
+      GSM_SNAPSHOT_ROOT: ${GSM_DATA_ROOT:-/data}/snapshots
+    volumes:
+      - ${GSM_DATA_ROOT:-/data}/snapshots:${GSM_DATA_ROOT:-/data}/snapshots

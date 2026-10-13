@@ -1,0 +1,21 @@
+{
+    admin off
+    auto_https off
+}
+
+https://{$GSM_HTTPS_DOMAIN} {
+    tls /certificates/live/{$GSM_HTTPS_DOMAIN}/fullchain.pem /certificates/live/{$GSM_HTTPS_DOMAIN}/privkey.pem
+    handle /api/print-agent/* {
+        reverse_proxy api:8000
+    }
+    handle {
+      reverse_proxy web:3000 {
+        header_up X-GSM-Edge-Client-Source {remote_host}
+        header_up X-GSM-Edge-Secret {$GSM_EDGE_PROXY_SECRET}
+        header_up X-Forwarded-Proto https
+        header_up -X-GSM-Client-Source
+        header_up -X-GSM-Client-Timestamp
+        header_up -X-GSM-Client-Signature
+      }
+    }
+}

@@ -1,0 +1,162 @@
+services:
+  lan:
+    profiles: ["lan"]
+    image: ${GSM_HTTPS_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    env_file:
+      - path: ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/lan.env
+        required: false
+    ports:
+      - "${GSM_LAN_BIND_ADDRESS:-127.0.0.1}:${GSM_LAN_HTTPS_PORT:-15443}:443"
+      - "${GSM_LAN_BIND_ADDRESS:-127.0.0.1}:${GSM_LAN_APPS_PORT:-15444}:444"
+    volumes:
+      - ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}/scripts/deploy/Caddyfile.lan:/etc/caddy/Caddyfile:ro
+      - ${GSM_STATE_DIR:-/var/lib/gpu-server-manager}/lan-caddy:/data
+    depends_on:
+      - web
+
+  https:
+    profiles: ["https"]
+    image: ${GSM_HTTPS_IMAGE:-caddy:2-alpine}
+    restart: unless-stopped
+    env_file:
+      - path: ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/https.env
+        required: false
+    ports:
+      - "127.0.0.1:${GSM_HOST_HTTPS_PORT:-14443}:443"
+    volumes:
+      - ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}/scripts/deploy/Caddyfile.test:/etc/caddy/Caddyfile:ro
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/acme:/certificates:ro
+    depends_on:
+      - web
+
+  api:
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: services/api/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-api:latest
+    restart: unless-stopped
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/api.env
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/agent-settings.env
+    depends_on:
+      server-agent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    ports:
+      - "127.0.0.1:${GSM_HOST_API_PORT:-8000}:8000"
+    volumes:
+      - ${GSM_STATE_DIR:-/var/lib/gpu-server-manager}:/var/lib/gpu-server-manager
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/ssh:/etc/gpu-server-manager/ssh:ro
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/inventory:/etc/gpu-server-manager/inventory:ro
+
+  web:
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: apps/web/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-web:latest
+    restart: unless-stopped
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/web.env
+    ports:
+      - "127.0.0.1:${GSM_HOST_WEB_PORT:-3000}:3000"
+
+  server-agent:
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: services/server-agent/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-server-agent:latest
+    restart: unless-stopped
+    runtime: ${GSM_AGENT_CONTAINER_RUNTIME:-runc}
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: utility
+      GSM_RESOURCE_DISKS: '[{"id":"system","label":"容器运行环境","path":"/host/runtime-storage"},{"id":"data","label":"个人数据与快照","path":"${GSM_DATA_ROOT:-/data}/users"},{"id":"scratch","label":"临时存储","path":"${GSM_SCRATCH_ROOT:-/scratch}/users"}]'
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/server-agent.env
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/agent/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - type: bind
+        source: ${GSM_HOST_JOURNAL_PARENT:-/var/log}
+        target: /host/log
+        read_only: true
+        bind:
+          create_host_path: false
+      - ${GSM_STATE_DIR:-/var/lib/gpu-server-manager}/server-agent:/var/lib/gpu-server-manager/server-agent
+      - type: bind
+        source: ${GSM_DATA_ROOT:-/data}/users
+        target: ${GSM_DATA_ROOT:-/data}/users
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${GSM_DATA_ROOT:-/data}/snapshots
+        target: ${GSM_DATA_ROOT:-/data}/snapshots
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${GSM_RUNTIME_HOST_ROOT:-/var/lib/docker}
+        target: /host/runtime-storage
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${GSM_SCRATCH_ROOT:-/scratch}/users
+        target: ${GSM_SCRATCH_ROOT:-/scratch}/users
+        bind:
+          create_host_path: false
+
+  wechat-agent:
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: services/wechat-agent/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-wechat-agent:latest
+    restart: unless-stopped
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/wechat-agent.env
+    volumes:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/wechat-ilink:/var/lib/gpu-server-manager/wechat-ilink
+
+  wechat-ilink:
+    profiles:
+      - wechat-ilink
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: services/wechat-agent/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-wechat-agent:latest
+    command: ["python", "-m", "gsm_wechat_agent.ilink_cli", "run"]
+    restart: unless-stopped
+    stop_grace_period: 75s
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/wechat-ilink.env
+    volumes:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/wechat-ilink:/var/lib/gpu-server-manager/wechat-ilink
+    depends_on:
+      - wechat-agent
+
+  test-agent:
+    profiles:
+      - smoke
+    build:
+      context: ${GSM_APP_SOURCE:-/opt/gpu-server-manager/source}
+      dockerfile: services/test-agent/Dockerfile
+    image: ${GSM_IMAGE_PREFIX:-gpu-server-manager}-test-agent:latest
+    restart: unless-stopped
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/test-agent.env
+    depends_on:
+      api:
+        condition: service_healthy
+      server-agent:
+        condition: service_healthy

@@ -1,0 +1,15 @@
+# Copy only CUDA components from the locally verified image into a clean OS.
+# The final filesystem never inherits its Python/conda/PyTorch layers.
+FROM gsm/cuda-devel:12.4.1-ubuntu22.04-20260923 AS toolkit
+FROM gsm/ubuntu-base:22.04-20260923
+COPY --from=toolkit /usr/local/cuda-12.4 /usr/local/cuda-12.4
+COPY --from=toolkit /opt/conda/lib/python3.11/site-packages/nvidia /opt/gsm/cuda-libraries/nvidia
+ENV PATH="/usr/local/cuda-12.4/bin:${PATH}" CUDA_HOME=/usr/local/cuda-12.4 NVIDIA_DRIVER_CAPABILITIES=compute,utility
+RUN ln -s /usr/local/cuda-12.4 /usr/local/cuda \
+    && find /opt/gsm/cuda-libraries/nvidia -type d -name lib > /etc/ld.so.conf.d/gsm-cuda.conf \
+    && printf '/usr/local/cuda-12.4/lib64\n' >> /etc/ld.so.conf.d/gsm-cuda.conf && ldconfig
+LABEL gsm.environment="cuda" gsm.runtime.version="12.4.1" gsm.cuda.clean="true"
+COPY environment-check.py /usr/local/bin/gsm-basic-check
+RUN chmod 0755 /usr/local/bin/gsm-basic-check \
+    && python -c "import importlib.util; assert importlib.util.find_spec('torch') is None; assert importlib.util.find_spec('sklearn') is None" \
+    && nvcc --version

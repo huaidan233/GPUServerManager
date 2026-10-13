@@ -1,0 +1,15 @@
+[Unit]
+Description=Campus access rules for GPU Server Manager test workload SSH
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+Before=gsm-test.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/gpu-server-manager-test/campus-ssh.env
+ExecStart=/usr/bin/python3 /opt/gpu-server-manager-test/source/scripts/deploy/campus_ssh_firewall.py
+RemainAfterExit=yes
+
+[Install]
+WantedBy=docker.service multi-user.target

@@ -1,0 +1,167 @@
+[
+  {
+    "filename": "cuda_bindings-12.9.7-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "c6496a88d84b1209d6651b0370c19c26319e157c22f6d018bf9a358cd8049041",
+    "bytes": 7647147
+  },
+  {
+    "filename": "cuda_pathfinder-1.6.0-py3-none-any.whl",
+    "sha256": "1503af579d8379c24bdd65528379bc57039b0455be9f5f9686cf8e473a1fce51",
+    "bytes": 54591
+  },
+  {
+    "filename": "cuda_toolkit-12.8.1-py2.py3-none-any.whl",
+    "sha256": "adc7906af4ecbf9a352f9dca5734eceb21daec281ccfcf5675e1d2f724fc2cba",
+    "bytes": 2283
+  },
+  {
+    "filename": "filelock-3.32.3-py3-none-any.whl",
+    "sha256": "7f0ca4bcc0e181c60dbbd8aa9ab5b120ebb99e4e064e83636340056f833a1f09",
+    "bytes": 98901
+  },
+  {
+    "filename": "fsspec-2026.7.0-py3-none-any.whl",
+    "sha256": "b57ddbafedfaef7018c1ecab32aa200a9d7ca26b77965f64e48b70061249d279",
+    "bytes": 206583
+  },
+  {
+    "filename": "jinja2-3.1.6-py3-none-any.whl",
+    "sha256": "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67",
+    "bytes": 134899
+  },
+  {
+    "filename": "markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "0bf2a864d67e76e5c9a34dc26ec616a66b9888e25e7b9460e1c76d3293bd9dbf",
+    "bytes": 22940
+  },
+  {
+    "filename": "mpmath-1.3.0-py3-none-any.whl",
+    "sha256": "a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c",
+    "bytes": 536198
+  },
+  {
+    "filename": "networkx-3.6.1-py3-none-any.whl",
+    "sha256": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+    "bytes": 2068504
+  },
+  {
+    "filename": "numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "89cd468399cfd2504718f0ba50e410dca55a170b61a02ad92bb18c8a65186e93",
+    "bytes": 16918164
+  },
+  {
+    "filename": "nvidia_cublas_cu12-12.8.4.1-py3-none-manylinux_2_27_x86_64.whl",
+    "sha256": "8ac4e771d5a348c551b2a426eda6193c19aa630236b418086020df5ba9667142",
+    "bytes": 594346921
+  },
+  {
+    "filename": "nvidia_cuda_cupti_cu12-12.8.90-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "ea0cb07ebda26bb9b29ba82cda34849e73c166c18162d3913575b0c9db9a6182",
+    "bytes": 10248621
+  },
+  {
+    "filename": "nvidia_cuda_nvrtc_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl",
+    "sha256": "a7756528852ef889772a84c6cd89d41dfa74667e24cca16bb31f8f061e3e9994",
+    "bytes": 88040029
+  },
+  {
+    "filename": "nvidia_cuda_runtime_cu12-12.8.90-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "adade8dcbd0edf427b7204d480d6066d33902cab2a4707dcfc48a2d0fd44ab90",
+    "bytes": 954765
+  },
+  {
+    "filename": "nvidia_cudnn_cu12-9.19.0.56-py3-none-manylinux_2_27_x86_64.whl",
+    "sha256": "ac6ad90a075bb33a94f2b4cf4622eac13dd4dc65cf6dd9c7572a318516a36625",
+    "bytes": 657906812
+  },
+  {
+    "filename": "nvidia_cufft_cu12-11.3.3.83-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "4d2dd21ec0b88cf61b62e6b43564355e5222e4a3fb394cac0db101f2dd0d4f74",
+    "bytes": 193118695
+  },
+  {
+    "filename": "nvidia_cufile_cu12-1.13.1.3-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "1d069003be650e131b21c932ec3d8969c1715379251f8d23a1860554b1cb24fc",
+    "bytes": 1197834
+  },
+  {
+    "filename": "nvidia_curand_cu12-10.3.9.90-py3-none-manylinux_2_27_x86_64.whl",
+    "sha256": "b32331d4f4df5d6eefa0554c565b626c7216f87a06a4f56fab27c3b68a830ec9",
+    "bytes": 63619976
+  },
+  {
+    "filename": "nvidia_cusolver_cu12-11.7.3.90-py3-none-manylinux_2_27_x86_64.whl",
+    "sha256": "4376c11ad263152bd50ea295c05370360776f8c3427b30991df774f9fb26c450",
+    "bytes": 267506905
+  },
+  {
+    "filename": "nvidia_cusparse_cu12-12.5.8.93-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "1ec05d76bbbd8b61b06a80e1eaf8cf4959c3d4ce8e711b65ebd0443bb0ebb13b",
+    "bytes": 288216466
+  },
+  {
+    "filename": "nvidia_cusparselt_cu12-0.7.1-py3-none-manylinux2014_x86_64.whl",
+    "sha256": "f1bb701d6b930d5a7cea44c19ceb973311500847f81b634d802b7b539dc55623",
+    "bytes": 287193691
+  },
+  {
+    "filename": "nvidia_nccl_cu12-2.28.9-py3-none-manylinux_2_18_x86_64.whl",
+    "sha256": "485776daa8447da5da39681af455aa3b2c2586ddcf4af8772495e7c532c7e5ab",
+    "bytes": 296782137
+  },
+  {
+    "filename": "nvidia_nvjitlink_cu12-12.8.93-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl",
+    "sha256": "81ff63371a7ebd6e6451970684f916be2eab07321b73c9d244dc2b4da7f73b88",
+    "bytes": 39254836
+  },
+  {
+    "filename": "nvidia_nvshmem_cu12-3.4.5-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "042f2500f24c021db8a06c5eec2539027d57460e1c1a762055a6554f72c369bd",
+    "bytes": 139103095
+  },
+  {
+    "filename": "nvidia_nvtx_cu12-12.8.90-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",
+    "sha256": "5b17e2001cc0d751a5bc2c6ec6d26ad95913324a4adb86788c944f8ce9ba441f",
+    "bytes": 89954
+  },
+  {
+    "filename": "pillow-12.3.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "23d27a3e0307ec2244cc51e7287b919aa68d097504ebe19df4e76a98a3eea5bd",
+    "bytes": 6934408
+  },
+  {
+    "filename": "setuptools-81.0.0-py3-none-any.whl",
+    "sha256": "fdd925d5c5d9f62e4b74b30d6dd7828ce236fd6ed998a08d81de62ce5a6310d6",
+    "bytes": 1062021
+  },
+  {
+    "filename": "sympy-1.14.0-py3-none-any.whl",
+    "sha256": "e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5",
+    "bytes": 6299353
+  },
+  {
+    "filename": "torch-2.11.0+cu128-cp311-cp311-manylinux_2_28_x86_64.whl",
+    "sha256": "c9a7ca4c74fae10a58e6175b4b2cea953f9322bb6562bbf339ad6a05f52190ad",
+    "bytes": 820214272
+  },
+  {
+    "filename": "torchaudio-2.11.0+cu128-cp311-cp311-manylinux_2_28_x86_64.whl",
+    "sha256": "c30e28573bbfe82b2e8b2168b8877bf978225ae23789a12631306bac65033e3a",
+    "bytes": 1684332
+  },
+  {
+    "filename": "torchvision-0.26.0+cu128-cp311-cp311-manylinux_2_28_x86_64.whl",
+    "sha256": "8f2629d056570c929b0a1d5473d9cb0320b90bda1764bda353553a72cc6b2069",
+    "bytes": 8055039
+  },
+  {
+    "filename": "triton-3.6.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+    "sha256": "e021e87e8f266c6f87bf379b669c43c2800aac6247bdf5d518cb553e3c403c00",
+    "bytes": 188221377
+  },
+  {
+    "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+    "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+    "bytes": 45571
+  }
+]

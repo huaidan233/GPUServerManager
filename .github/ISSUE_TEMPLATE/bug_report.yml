@@ -1,0 +1,83 @@
+name: 缺陷报告
+description: 报告可复现的功能、部署或兼容性问题
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告。安全漏洞请不要填写此表单，请按 SECURITY.md 使用私密漏洞报告。
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索现有 Issue，未发现相同问题。
+          required: true
+        - label: 报告不包含令牌、密钥、成员隐私、数据库或未脱敏日志。
+          required: true
+        - label: 这不是需要私密处理的安全漏洞。
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: Release 版本、镜像标签或 git commit。
+      placeholder: v0.1.0 / abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 影响区域
+      options:
+        - Web
+        - Central API
+        - Server Agent
+        - WeChat Agent
+        - Test Agent
+        - Windows Print Agent
+        - Ubuntu 部署或备份恢复
+        - 文档或其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境
+      description: 操作系统、Python、Node.js、Docker、浏览器及 GPU/驱动版本（适用时）。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 提供可重复的最小步骤和已脱敏输入。
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 可附已脱敏日志或截图。
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 其他信息
+      description: 临时缓解措施、回归范围或相关链接。

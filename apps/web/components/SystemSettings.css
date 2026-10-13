@@ -1,0 +1,34 @@
+.settings-hub { max-width: 1120px; margin: 0 auto; }
+.settings-intro { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin: 6px 0 28px; }
+.settings-eyebrow { color: var(--accent-strong); font-size: 11px; letter-spacing: .12em; }
+.settings-intro h2 { font-size: 25px; letter-spacing: -.04em; margin: 8px 0; }
+.settings-intro p, .settings-storage-note p { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 0; }
+.settings-admin-label { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.settings-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.settings-group { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px; }
+.settings-group h3 { margin: 0 0 12px; font-size: 12px; color: var(--muted); font-weight: 500; }
+.settings-entry { display: flex; width: 100%; gap: 16px; align-items: center; padding: 22px 4px; background: transparent; border: 0; border-top: 1px solid var(--line); text-align: left; border-radius: 0; color: var(--text); cursor: pointer; }
+.settings-entry:hover { background: var(--accent-soft); }
+.settings-entry-icon { color: var(--accent); flex: 0 0 32px; }
+.settings-entry-copy { display: grid; gap: 6px; flex: 1; min-width: 0; }
+.settings-entry-copy strong { font-size: 16px; font-weight: 600; }
+.settings-entry-copy > span { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.settings-entry-copy small { color: var(--accent-strong); font: 11px "Cascadia Mono", Consolas, monospace; }
+.settings-entry-arrow { color: var(--muted); flex: none; }
+.settings-storage-note { display: flex; gap: 14px; align-items: flex-start; padding: 22px 0; color: var(--muted); }
+.settings-storage-note > svg { flex: none; margin-top: 3px; }
+.settings-storage-note strong { display: block; color: var(--text); font-size: 13px; margin-bottom: 4px; }
+.dialog.settings-dialog { width: min(1080px, calc(100vw - 40px)); padding: 0; border-radius: 12px; }
+.settings-dialog > .dialog-heading { position: sticky; top: 0; z-index: 2; background: var(--panel); padding: 22px 26px; border-bottom: 1px solid var(--line); align-items: center; }
+.settings-dialog-content { padding: 24px 26px 28px; }
+.settings-dialog-content > .panel, .settings-dialog-content > .workspace-panel, .settings-dialog-content > .operations-section { margin: 0; padding: 0; border: 0; box-shadow: none; }
+.settings-search { display: grid; gap: 7px; font-size: 13px; color: var(--muted); margin: 18px 0; }
+.settings-search input, .settings-dialog label > input, .settings-dialog label > select { max-width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 7px; padding: 10px 12px; background: var(--panel); color: var(--text); font: inherit; }
+.settings-pagination { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.settings-pagination > span { flex: 1; color: var(--muted); font-size: 12px; }
+.settings-dialog td code { overflow-wrap: anywhere; }
+.update-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 20px; padding: 22px; background: var(--accent-soft); border-radius: 10px; }
+.update-details dt { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.update-details dd { margin: 0; font-size: 15px; overflow-wrap: anywhere; }
+.update-settings > p { font-size: 13px; line-height: 1.7; }
+@media (max-width: 760px) { .settings-groups { grid-template-columns: 1fr; gap: 16px; } .settings-intro { align-items: flex-start; flex-direction: column; gap: 10px; } .settings-group { padding: 18px; } .settings-dialog-content { padding: 18px; } .settings-dialog > .dialog-heading { padding: 18px; } }

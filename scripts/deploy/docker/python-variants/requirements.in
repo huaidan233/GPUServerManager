@@ -1,0 +1,17 @@
+# Scientific workspace: resolved to a complete lock inside each built image.
+numpy<3
+scipy<2
+pandas<4
+scikit-learn<2
+matplotlib<4
+seaborn<1
+jupyterlab==4.6.4
+ipykernel==7.3.0
+tensorboard==2.21.0
+h5py<4
+openpyxl<4
+pillow<13
+tqdm<5
+requests<3
+pyyaml<7
+pytest<10

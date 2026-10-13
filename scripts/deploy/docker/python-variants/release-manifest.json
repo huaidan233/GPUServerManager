@@ -1,0 +1,57 @@
+{
+  "release": "20260930",
+  "interpreters": [
+    {
+      "filename": "cpython-3.10.21+20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260929/cpython-3.10.21%2B20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "e2898f530fe045bf3d794e55802a6f86d80fc46d8e9451a3beb6200dd90be161"
+    },
+    {
+      "filename": "cpython-3.11.16+20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260929/cpython-3.11.16%2B20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "f05084f3fbd7a0c7ed762ea6fd2455976a463952bb5c3253fc6cdc777f84728d"
+    },
+    {
+      "filename": "cpython-3.13.15+20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "url": "https://github.com/astral-sh/python-build-standalone/releases/download/20260929/cpython-3.13.15%2B20260929-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+      "sha256": "c552deaf9ed0e678dee4ccc760d6dcd7cab33f1bd43e8037123b4a4db8508e14"
+    }
+  ],
+  "images": [
+    {
+      "name": "gsm/python-base",
+      "tag": "3.10.21-20260930",
+      "digest": "sha256:a0652fb33cc61108e40fece58d47912c55ed051262b35925b34d3b205a57fa19",
+      "runtime_version": "3.10.21",
+      "environment": "python-base"
+    },
+    {
+      "name": "gsm/python-base",
+      "tag": "3.11.16-20260930",
+      "digest": "sha256:cf505f8835db0331a1310f49978378e65d1430e4460feee3ab97ee35332588ac",
+      "runtime_version": "3.11.16",
+      "environment": "python-base"
+    },
+    {
+      "name": "gsm/python-workbench",
+      "tag": "py311-jlab4.6.4-20260930",
+      "digest": "sha256:552bf81118581a6a009090fae3607eb66cb0b69f03b2c71251f863f9e516ad4e",
+      "runtime_version": "3.11.16",
+      "environment": "python"
+    },
+    {
+      "name": "gsm/python-base",
+      "tag": "3.13.15-20260930",
+      "digest": "sha256:f58270c22fd29c7cd217d2903d5d60aa3ae423ce9d7a35b5347c262b6a0dd5a7",
+      "runtime_version": "3.13.15",
+      "environment": "python-base"
+    },
+    {
+      "name": "gsm/python-workbench",
+      "tag": "py313-jlab4.6.4-20260930",
+      "digest": "sha256:3ecb58c4ab16b23d1ca6cdfac5791af6c43b54a1a21689e8b8cdd3b356c8cfeb",
+      "runtime_version": "3.13.15",
+      "environment": "python"
+    }
+  ]
+}

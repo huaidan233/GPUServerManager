@@ -1,0 +1,23 @@
+[Unit]
+Description=GPU Server Manager transactional updater (%i)
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=root
+Group=root
+EnvironmentFile=/etc/gpu-server-manager-updaters/%i.env
+ExecStart=/usr/bin/python3 /usr/local/lib/gpu-server-manager/upgrade_manager.py --config ${GSM_UPGRADE_CONFIG} serve
+Restart=on-failure
+RestartSec=5
+UMask=0077
+TimeoutStopSec=30
+TimeoutStartSec=1800
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

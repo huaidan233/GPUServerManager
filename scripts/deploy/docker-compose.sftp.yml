@@ -1,0 +1,27 @@
+# Merge with the control-plane compose file. The API is internal; only SFTP is published.
+services:
+  sftpgo:
+    image: drakkan/sftpgo:v2.6.6-alpine
+    user: "10000:10000"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["test -f /srv/gsm-users/.gsm-data-volume || { echo 'Personal data volume is unavailable' >&2; exit 1; }; exec sftpgo serve"]
+    restart: unless-stopped
+    env_file:
+      - ${GSM_CONFIG_DIR:-/etc/gpu-server-manager}/sftpgo.env
+    ports:
+      - "${GSM_DATA_SFTP_BIND_ADDRESS:-127.0.0.1}:${GSM_DATA_SFTP_PORT:-2222}:2022"
+    volumes:
+      - ${GSM_DATA_ROOT:-/data}/sftpgo:/var/lib/sftpgo
+      - ${GSM_DATA_ROOT:-/data}/users:/srv/gsm-users
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: 1
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

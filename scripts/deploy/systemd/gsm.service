@@ -1,0 +1,14 @@
+[Unit]
+Description=GPU Server Manager
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gpu-server-manager
+ExecStart=/usr/bin/docker compose -f /opt/gpu-server-manager/docker-compose.yml --env-file /etc/gpu-server-manager/gsm.env up -d
+ExecStop=/usr/bin/docker compose -f /opt/gpu-server-manager/docker-compose.yml --env-file /etc/gpu-server-manager/gsm.env down
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

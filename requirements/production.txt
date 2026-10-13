@@ -1,0 +1,16 @@
+-c constraints.txt
+
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+httpx
+docker
+cryptography
+pypdf
+Pillow
+python-multipart
+argon2-cffi
+pyotp
+python-dotenv
+pywin32; sys_platform == "win32"

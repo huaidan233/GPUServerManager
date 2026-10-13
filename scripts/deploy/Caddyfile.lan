@@ -1,0 +1,48 @@
+{
+    admin off
+    auto_https disable_redirects
+    default_sni {$GSM_LAN_HOST}
+}
+
+# Separate browser origin for user-controlled notebooks and visualizations.
+# The gateway serves only scoped app routes and strips all upstream cookies.
+https://{$GSM_LAN_HOST}:444 {
+    tls internal
+    @allowed_apps {
+        remote_ip {$GSM_LAN_ALLOWED_CIDRS:127.0.0.1/32}
+        path /apps/*
+    }
+    handle @allowed_apps {
+        reverse_proxy api:8000
+    }
+    handle {
+        respond "Application access only" 403
+    }
+}
+
+https://{$GSM_LAN_HOST}:443 {
+    tls internal
+    log
+
+    @allowed_print {
+        remote_ip {$GSM_LAN_ALLOWED_CIDRS:127.0.0.1/32}
+        path /api/print-agent/*
+    }
+    handle @allowed_print {
+        reverse_proxy api:8000
+    }
+    @allowed remote_ip {$GSM_LAN_ALLOWED_CIDRS:127.0.0.1/32}
+    handle @allowed {
+        reverse_proxy web:3000 {
+            header_up X-GSM-Edge-Client-Source {remote_host}
+            header_up X-GSM-Edge-Secret {$GSM_EDGE_PROXY_SECRET}
+            header_up X-Forwarded-Proto https
+            header_up -X-GSM-Client-Source
+            header_up -X-GSM-Client-Timestamp
+            header_up -X-GSM-Client-Signature
+        }
+    }
+    handle {
+        respond "LAN access only" 403
+    }
+}
